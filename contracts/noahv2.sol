@@ -110,48 +110,16 @@ contract Noah {
     }
 
     /**
-     * @notice Adds new passengers (tokens) to a user's Ark.
-     * @param _newPassengers The list of new token addresses to add.
-     */
-    function addPassengers(address[] calldata _newPassengers, uint256[] calldata _deadlineDurations) external {
-
-        for (uint i = 0; i < _newPassengers.length; i++) {
-            require(arks[msg.sender][_newPassengers[i]].deadline != 0, "Ark not built");
-            arks[msg.sender][_newPassengers[i]] = Ark({
-                beneficiary: msg.sender,
-                deadline: block.timestamp + _deadlineDurations[i],
-                deadlineDuration: _deadlineDurations[i]
-            });
-        }
-        emit PassengersAdded(msg.sender, _newPassengers);
-    }
-
-    /**
-     * @notice Removes a passenger (token) from a user's Ark.
-     * @param _passengerToRemove The address of the token to remove.
-     */
-    function removePassenger(address _passengerToRemove) external {
-        require(arks[msg.sender].deadline != 0, "Ark not built");
-        address[] storage tokenList = arks[msg.sender].tokens;
-        for (uint i = 0; i < tokenList.length; i++) {
-            if (tokenList[i] == _passengerToRemove) {
-                tokenList[i] = tokenList[tokenList.length - 1];
-                tokenList.pop();
-                break;
-            }
-        }
-        emit PassengerRemoved(msg.sender, _passengerToRemove);
-    }
-
-    /**
      * @notice Updates the deadline duration for a user's Ark.
+     * @param _user The address of the user whose Ark is being updated.
+     * @param _token The address of the token whose Ark is being updated.
      * @param _newDuration The new deadline duration in seconds.
      */
-    function updateDeadlineDuration(uint256 _newDuration) external {
-        require(arks[msg.sender].deadline != 0, "Ark not built");
+    function updateDeadlineDuration(address _user, address _token, uint256 _newDuration) external {
+        require(arks[msg.sender][_token].deadline != 0, "Ark not built");
         require(_newDuration > 0, "Duration must be greater than zero");
-        arks[msg.sender].deadlineDuration = _newDuration;
-        arks[msg.sender].deadline = block.timestamp + _newDuration;
-        emit DeadlineUpdated(msg.sender, _newDuration, arks[msg.sender].deadline);
+        arks[msg.sender][_token].deadlineDuration = _newDuration;
+        arks[msg.sender][_token].deadline = block.timestamp + _newDuration;
+        emit DeadlineUpdated(msg.sender, _newDuration, arks[msg.sender][_token].deadline);
     }
 }
