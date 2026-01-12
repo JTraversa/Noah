@@ -21,6 +21,7 @@ contract Noah {
     mapping(address => mapping(address => Ark)) public arks;
     
     event ArkBuilt(address indexed user, address indexed beneficiary, address indexed token, uint256 deadline);
+    event ArkDestroyed(address indexed user, address indexed token);
     event ArkPinged(address indexed user, uint256 newDeadline);
     event FloodTriggered(address indexed user, address indexed beneficiary, uint256 usdcAmount);
     event PassengersAdded(address indexed user, address[] newPassengers);
@@ -70,6 +71,19 @@ contract Noah {
     }
 
     /**
+     * @notice Destroys an Ark for the caller.
+     * @param _token The address of the token whose Ark is being destroyed.
+     */
+    function destroyArk(address _token) external {
+
+        require(arks[msg.sender][_token].deadline != 0, "Ark not built");
+
+        arks[msg.sender][_token].deadline = 0;
+
+        emit ArkDestroyed(msg.sender, _token);
+    }
+
+    /**
      * @notice Pings an Ark to reset its timer.
      */
     function pingArk() external {
@@ -111,11 +125,10 @@ contract Noah {
 
     /**
      * @notice Updates the deadline duration for a user's Ark.
-     * @param _user The address of the user whose Ark is being updated.
      * @param _token The address of the token whose Ark is being updated.
      * @param _newDuration The new deadline duration in seconds.
      */
-    function updateDeadlineDuration(address _user, address _token, uint256 _newDuration) external {
+    function updateDeadlineDuration(address _token, uint256 _newDuration) external {
         require(arks[msg.sender][_token].deadline != 0, "Ark not built");
         require(_newDuration > 0, "Duration must be greater than zero");
         arks[msg.sender][_token].deadlineDuration = _newDuration;
