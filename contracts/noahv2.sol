@@ -39,11 +39,11 @@ contract Noah {
      * @return deadline The deadline of the Ark.
      * @return deadlineDuration The deadline duration of the Ark.
      */
-    function getArk(address user, address token) external view returns (address beneficiary, uint256 deadline, uint256 deadlineDuration, address[] memory tokens) {
+    function getArk(address user, address token) external view returns (address beneficiary, uint256 deadline, uint256 deadlineDuration) {
 
         Ark memory ark = arks[user][token];
 
-        return (ark.beneficiary, ark.deadline, ark.deadlineDuration, token);
+        return (ark.beneficiary, ark.deadline, ark.deadlineDuration);
     }
 
     /**
