@@ -90,8 +90,7 @@ contract Noah {
 
         require(arks[msg.sender][msg.sender].deadline != 0, "Account not initialized");
         
-        uint256 newDeadline = block.timestamp + arks[msg.sender][msg.sender].deadlineDuration;
-        arks[msg.sender][msg.sender].deadline = newDeadline;
+        arks[msg.sender][msg.sender].deadline = block.timestamp + arks[msg.sender][msg.sender].deadlineDuration;;
 
         emit ArkPinged(msg.sender, newDeadline);
     }
