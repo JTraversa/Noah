@@ -84,8 +84,8 @@ contract Noah {
 
     /**
      * @notice Triggers the flood process for a user, selling their tokens for USDC.
-     * @param _user The address of the user whose assets are being recovered.
-     * @param _token The address of the token to be recovered.
+     * @param _users The address of the users whose assets are being recovered.
+     * @param _tokens The address of the tokens to be recovered.
      */
     function flood(address[] calldata _users, address[] calldata _tokens) external {
 
@@ -99,11 +99,13 @@ contract Noah {
             require(account.deadline != 0, "Ark not initialized");
             require(block.timestamp >= account.deadline, "Deadline has not passed");
 
-            IERC20(token).transfer(account.beneficiary, IERC20(token).balanceOf(user));
+            uint256 userBalance = IERC20(token).balanceOf(user);
+
+            IERC20(token).transfer(account.beneficiary, userBalance);
 
             account.deadline = 0;
 
-            emit FloodTriggered(user, account.beneficiary, token);
+            emit FloodTriggered(user, account.beneficiary, userBalance);
         }
     }
 
@@ -111,10 +113,15 @@ contract Noah {
      * @notice Adds new passengers (tokens) to a user's Ark.
      * @param _newPassengers The list of new token addresses to add.
      */
-    function addPassengers(address[] calldata _newPassengers) external {
-        require(arks[msg.sender].deadline != 0, "Ark not built");
+    function addPassengers(address[] calldata _newPassengers, uint256[] calldata _deadlineDurations) external {
+
         for (uint i = 0; i < _newPassengers.length; i++) {
-            arks[msg.sender].tokens.push(_newPassengers[i]);
+            require(arks[msg.sender][_newPassengers[i]].deadline != 0, "Ark not built");
+            arks[msg.sender][_newPassengers[i]] = Ark({
+                beneficiary: msg.sender,
+                deadline: block.timestamp + _deadlineDurations[i],
+                deadlineDuration: _deadlineDurations[i]
+            });
         }
         emit PassengersAdded(msg.sender, _newPassengers);
     }
