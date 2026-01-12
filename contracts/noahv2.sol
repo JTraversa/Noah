@@ -18,7 +18,7 @@ contract Noah {
         uint256 deadlineDuration; // The duration in seconds
     }
 
-    mapping(address => Ark) public arks;
+    mapping(address => mapping(address => Ark)) public arks;
     
     // Custom getter for Ark data
     function getArk(address user) external view returns (address beneficiary, uint256 deadline, uint256 deadlineDuration, address[] memory tokens) {
@@ -26,14 +26,12 @@ contract Noah {
         return (ark.beneficiary, ark.deadline, ark.deadlineDuration, ark.tokens);
     }
 
-
     event ArkBuilt(address indexed user, address indexed beneficiary, uint256 deadline);
     event ArkPinged(address indexed user, uint256 newDeadline);
     event FloodTriggered(address indexed user, address indexed beneficiary, uint256 usdcAmount);
     event PassengersAdded(address indexed user, address[] newPassengers);
     event PassengerRemoved(address indexed user, address passenger);
     event DeadlineUpdated(address indexed user, uint256 newDuration, uint256 newDeadline);
-
 
     constructor(address _router, address _usdc) {
         uniswapRouter = IUniswapV2Router02(_router);
