@@ -59,14 +59,16 @@ contract Noah {
         require(_deadlineDuration > 0, "Deadline duration must be greater than zero");
 
         for (uint i = 0; i < _tokens.length; i++) {
+            address token = _tokens[i];
             // Create a temporary struct and assign it to the mapping
             Ark memory tempArk = Ark({
                 beneficiary: _beneficiary,
                 deadline: block.timestamp + _deadlineDuration,
                 deadlineDuration: _deadlineDuration
             });
-            arks[msg.sender][_beneficiary] = tempArk;
-            emit ArkBuilt(msg.sender, _beneficiary, _tokens[i], block.timestamp + _deadlineDuration);
+            arks[msg.sender][token] = tempArk;
+
+            emit ArkBuilt(msg.sender, _beneficiary, token, block.timestamp + _deadlineDuration);
         }
     }
 
