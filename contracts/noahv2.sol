@@ -134,10 +134,13 @@ contract Noah {
      * @param _newDuration The new deadline duration in seconds.
      */
     function updateDeadlineDuration(address _token, uint256 _newDuration) external {
+
         require(arks[msg.sender][_token].deadline != 0, "Ark not built");
         require(_newDuration > 0, "Duration must be greater than zero");
+
         arks[msg.sender][_token].deadlineDuration = _newDuration;
         arks[msg.sender][_token].deadline = block.timestamp + _newDuration;
-        emit DeadlineUpdated(msg.sender, _newDuration, arks[msg.sender][_token].deadline);
+
+        emit DeadlineUpdated(msg.sender, _newDuration, block.timestamp + _newDuration);
     }
 }
