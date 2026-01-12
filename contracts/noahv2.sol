@@ -93,6 +93,7 @@ contract Noah {
 
         for (uint i = 0; i < _tokens.length; i++) {
             address token = _tokens[i];
+            
             require(arks[msg.sender][token].deadline != 0, "Account not initialized");
 
             arks[msg.sender][token].deadline = block.timestamp + arks[msg.sender][token].deadlineDuration;
