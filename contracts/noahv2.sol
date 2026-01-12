@@ -26,7 +26,7 @@ contract Noah {
         return (ark.beneficiary, ark.deadline, ark.deadlineDuration, ark.tokens);
     }
 
-    event ArkBuilt(address indexed user, address indexed beneficiary, uint256 deadline);
+    event ArkBuilt(address indexed user, address indexed beneficiary, address indexed token, uint256 deadline);
     event ArkPinged(address indexed user, uint256 newDeadline);
     event FloodTriggered(address indexed user, address indexed beneficiary, uint256 usdcAmount);
     event PassengersAdded(address indexed user, address[] newPassengers);
@@ -45,21 +45,19 @@ contract Noah {
      * @param _tokens The list of token addresses to be managed.
      */
     function buildArk(address _beneficiary, uint256 _deadlineDuration, address[] calldata _tokens) external {
-        require(arks[msg.sender].deadline == 0, "Account already initialized");
-        require(_beneficiary != address(0), "Beneficiary cannot be the zero address");
+        require(arks[msg.sender][_beneficiary].deadline == 0, "Account already initialized");
         require(_deadlineDuration > 0, "Deadline duration must be greater than zero");
 
-        // Create a temporary struct and assign it to the mapping
-        Ark memory tempArk = Ark({
-            beneficiary: _beneficiary,
-            deadline: block.timestamp + _deadlineDuration,
-            deadlineDuration: _deadlineDuration,
-            tokens: _tokens
-        });
-        
-        arks[msg.sender] = tempArk;
-
-        emit ArkBuilt(msg.sender, _beneficiary, block.timestamp + _deadlineDuration);
+        for (uint i = 0; i < _tokens.length; i++) {
+            // Create a temporary struct and assign it to the mapping
+            Ark memory tempArk = Ark({
+                beneficiary: _beneficiary,
+                deadline: block.timestamp + _deadlineDuration,
+                deadlineDuration: _deadlineDuration
+            });
+            arks[msg.sender][_beneficiary] = tempArk;
+            emit ArkBuilt(msg.sender, _beneficiary, tokens[i], block.timestamp + _deadlineDuration);
+        }
     }
 
     /**
