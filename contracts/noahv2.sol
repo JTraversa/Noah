@@ -22,7 +22,7 @@ contract Noah {
     
     event ArkBuilt(address indexed user, address indexed beneficiary, address indexed token, uint256 deadline);
     event ArkDestroyed(address indexed user, address indexed token);
-    event ArkPinged(address indexed user, uint256 newDeadline);
+    event ArkPinged(address indexed user, address indexed token, uint256 newDeadline);
     event FloodTriggered(address indexed user, address indexed beneficiary, uint256 usdcAmount);
     event PassengersAdded(address indexed user, address[] newPassengers);
     event PassengerRemoved(address indexed user, address passenger);
@@ -85,14 +85,18 @@ contract Noah {
 
     /**
      * @notice Pings an Ark to reset its timer.
+     * @param _tokens The list of token addresses to be pinged.
      */
-    function pingArk() external {
+    function pingArk(address[] calldata _tokens) external {
 
-        require(arks[msg.sender][msg.sender].deadline != 0, "Account not initialized");
-        
-        arks[msg.sender][msg.sender].deadline = block.timestamp + arks[msg.sender][msg.sender].deadlineDuration;;
+        for (uint i = 0; i < _tokens.length; i++) {
+            address token = _tokens[i];
+            require(arks[msg.sender][token].deadline != 0, "Account not initialized");
 
-        emit ArkPinged(msg.sender, newDeadline);
+            arks[msg.sender][token].deadline = block.timestamp + arks[msg.sender][token].deadlineDuration;
+
+            emit ArkPinged(msg.sender, token, block.timestamp + arks[msg.sender][token].deadlineDuration);
+        }
     }
 
     /**
