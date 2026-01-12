@@ -6,7 +6,7 @@ import {IUniswapV2Router02} from "./interfaces/IUniswapV2Router02.sol";
 
 /**
  * @title Noah
- * @dev A dead man's switch contract to transfer a user's tokens to a beneficiary after a set time.
+ * @notice A dead man's switch contract to transfer a user's tokens to a beneficiary after a set time.
  */
 contract Noah {
 

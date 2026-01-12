@@ -6,26 +6,69 @@ import {IUniswapV2Router02} from "./interfaces/IUniswapV2Router02.sol";
 
 /**
  * @title Noah
- * @dev A dead man's switch contract to transfer a user's tokens to a beneficiary after a set time.
+ * @notice A dead man's switch contract to transfer a user's tokens to a beneficiary after a set time.
  */
 contract Noah {
 
     address public immutable usdcAddress;
 
+    /**
+     * @notice The struct for the Ark.
+     * @param beneficiary The address of the beneficiary.
+     * @param deadline The deadline of the Ark.
+     * @param deadlineDuration The deadline duration of the Ark.
+     */
     struct Ark {
         address beneficiary;
         uint256 deadline;
         uint256 deadlineDuration; // The duration in seconds
     }
 
+    /**
+     * @notice The mapping of the Arks.
+     * @notice user The address of the user.
+     * @notice token The address of the token.
+     */
     mapping(address => mapping(address => Ark)) public arks;
     
+    /**
+     * @notice The events for the Ark.
+     * @param user The address of the user.
+     * @param beneficiary The address of the beneficiary.
+     * @param token The address of the token.
+     * @param deadline The deadline of the Ark.
+     */
     event ArkBuilt(address indexed user, address indexed beneficiary, address indexed token, uint256 deadline);
+
+    /**
+     * @notice The event for the Ark destroyed.
+     * @param user The address of the user.
+     * @param token The address of the token.
+     */
     event ArkDestroyed(address indexed user, address indexed token);
+
+    /**
+     * @notice The event for the Ark pinged.
+     * @param user The address of the user.
+     * @param token The address of the token.
+     * @param newDeadline The new deadline of the Ark.
+     */
     event ArkPinged(address indexed user, address indexed token, uint256 newDeadline);
-    event FloodTriggered(address indexed user, address indexed beneficiary, uint256 usdcAmount);
-    event PassengersAdded(address indexed user, address[] newPassengers);
-    event PassengerRemoved(address indexed user, address passenger);
+
+    /**
+     * @notice The event for the Flood triggered.
+     * @param user The address of the user.
+     * @param beneficiary The address of the beneficiary.
+     * @param tokenAmount The amount of token triggered.
+     */
+    event FloodTriggered(address indexed user, address indexed beneficiary, address indexed token, uint256 tokenAmount);
+
+    /**
+     * @notice The event for the Deadline updated.
+     * @param user The address of the user.
+     * @param newDuration The new duration of the Ark.
+     * @param newDeadline The new deadline of the Ark.
+     */
     event DeadlineUpdated(address indexed user, uint256 newDuration, uint256 newDeadline);
 
     constructor() {
@@ -93,7 +136,7 @@ contract Noah {
 
         for (uint i = 0; i < _tokens.length; i++) {
             address token = _tokens[i];
-            
+
             require(arks[msg.sender][token].deadline != 0, "Account not initialized");
 
             arks[msg.sender][token].deadline = block.timestamp + arks[msg.sender][token].deadlineDuration;
