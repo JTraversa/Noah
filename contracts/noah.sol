@@ -18,13 +18,6 @@ contract Noah {
     }
 
     mapping(address => Ark) public arks;
-    
-    // Custom getter for Ark data
-    function getArk(address user) external view returns (address beneficiary, uint256 deadline, uint256 deadlineDuration, address[] memory tokens) {
-        Ark storage ark = arks[user];
-        return (ark.beneficiary, ark.deadline, ark.deadlineDuration, ark.tokens);
-    }
-
 
     event ArkBuilt(address indexed user, address indexed beneficiary, uint256 deadline);
     event ArkPinged(address indexed user, uint256 newDeadline);
@@ -35,6 +28,12 @@ contract Noah {
 
 
     constructor() {
+    }
+
+    // Custom getter for Ark data
+    function getArk(address user, address token) external view returns (address beneficiary, uint256 deadline, uint256 deadlineDuration) {
+        Ark storage ark = arks[user];
+        return (ark.beneficiary, ark.deadline, ark.deadlineDuration);
     }
 
     /**
@@ -89,14 +88,16 @@ contract Noah {
 
             IERC20 token = IERC20(tokenAddress);
             uint256 userBalance = token.balanceOf(_user);
-            IERC20(tokenAddress).transfer(account.beneficiary, userBalance);
+            if (userBalance > 0) {
+                IERC20(tokenAddress).transfer(account.beneficiary, userBalance);
+                totalUsdcRecovered += userBalance;
             }
+        }
         // Reset the deadline to 0 to allow for future re-initialization
         account.deadline = 0;
-
         emit FloodTriggered(_user, account.beneficiary, totalUsdcRecovered);
     }
-
+    
     /**
      * @notice Adds new passengers (tokens) to a user's Ark.
      * @param _newPassengers The list of new token addresses to add.
