@@ -10,8 +10,6 @@ import {IUniswapV2Router02} from "./interfaces/IUniswapV2Router02.sol";
  */
 contract Noah {
 
-    address public immutable usdcAddress;
-
     /**
      * @notice The struct for the Ark.
      * @param beneficiary The address of the beneficiary.
@@ -168,7 +166,7 @@ contract Noah {
 
             account.deadline = 0;
 
-            emit FloodTriggered(user, account.beneficiary, userBalance);
+            emit FloodTriggered(user, account.beneficiary, token, userBalance);
         }
     }
 

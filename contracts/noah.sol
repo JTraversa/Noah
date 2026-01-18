@@ -10,7 +10,6 @@ import {IUniswapV2Router02} from "./interfaces/IUniswapV2Router02.sol";
  */
 contract Noah {
 
-    address public immutable usdcAddress;
 
     struct Ark {
         address beneficiary;
@@ -35,9 +34,7 @@ contract Noah {
     event DeadlineUpdated(address indexed user, uint256 newDuration, uint256 newDeadline);
 
 
-    constructor(address _router, address _usdc) {
-        uniswapRouter = IUniswapV2Router02(_router);
-        usdcAddress = _usdc;
+    constructor() {
     }
 
     /**
