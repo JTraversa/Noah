@@ -29,7 +29,6 @@ export default function Home() {
         </div>
 
         <p className="text-xl md:text-2xl text-gray-400 max-w-2xl mb-12">
-          Next-generation DeFi powered by Uniswap V4 hooks.
           Smarter swaps, better rates, infinite possibilities.
         </p>
 

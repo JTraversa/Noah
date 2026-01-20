@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Noah V4 - Uniswap V4 Integration",
-  description: "Next-generation DeFi powered by Uniswap V4 hooks",
+  title: "Noah",
+  description: "",
 };
 
 export default function RootLayout({
