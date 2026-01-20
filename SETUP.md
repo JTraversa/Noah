@@ -17,15 +17,11 @@ yarn install
 ```
 
 **Note**: If you encounter import errors, the contracts now use the correct npm package paths:
-- `@uniswap/v4-core` instead of `lib/v4-core`
-- `@uniswap/v4-periphery` instead of `lib/v4-periphery`
 - `@openzeppelin/contracts` instead of `lib/openzeppelin-contracts`
 
 ## Step 2: Verify Installation
 
 Check that the following packages are installed:
-- `@uniswap/v4-core`
-- `@uniswap/v4-periphery`
 - `@openzeppelin/contracts`
 - `hardhat`
 - `ethers`
@@ -69,7 +65,7 @@ yarn deploy
 
 1. **Import Errors**: The contracts now use correct npm package imports. If you still see import errors:
    ```bash
-   npm install @uniswap/v4-core @uniswap/v4-periphery @openzeppelin/contracts
+   npm install @openzeppelin/contracts
    ```
 
 2. **Compilation Errors**: Make sure you're using Solidity 0.8.20 or higher and have the viaIR compiler setting enabled.
