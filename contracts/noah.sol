@@ -15,6 +15,7 @@ contract Noah {
         address beneficiary;
         uint256 deadline;
         uint256 deadlineDuration; // The duration in seconds
+        address[] tokens;
     }
 
     mapping(address => Ark) public arks;
