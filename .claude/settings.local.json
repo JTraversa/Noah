@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(timeout:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npx next dev --turbopack)",
+      "Bash(node:*)",
+      "Bash(npx next:*)"
+    ]
+  }
+}
