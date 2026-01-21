@@ -9,7 +9,8 @@
       "Bash(wc:*)",
       "Bash(dir:*)",
       "WebSearch",
-      "WebFetch(domain:developers.zerion.io)"
+      "WebFetch(domain:developers.zerion.io)",
+      "WebFetch(domain:docs.moralis.com)"
     ]
   }
 }

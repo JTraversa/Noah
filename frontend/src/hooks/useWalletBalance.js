@@ -1,11 +1,62 @@
 import { useState, useEffect } from 'react';
 
-const ZERION_API_KEY = 'zk_b12410442a3249daa38955e76a4d5327';
+const MORALIS_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6ImY0ZTMzNTY4LTI3ZWMtNGI3ZS1hYWVlLTUxNTAwMzA0NTgwZSIsIm9yZ0lkIjoiMzcwOTMzIiwidXNlcklkIjoiMzgxMjE2IiwidHlwZUlkIjoiMzMwYzBlZmMtMWY3NS00OGJiLWJmYzUtMWE3N2IwZDc3ZTA1IiwidHlwZSI6IlBST0pFQ1QiLCJpYXQiOjE3MDQ0NTA4MzcsImV4cCI6NDg2MDIxMDgzN30.mQ3AgGu9_BGpKNG6meMI3WiSF-7LGkdih2MYk_BqCl4';
 const WALLET_ADDRESS = '0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C';
+const CHAINS = ['arbitrum'];
+const ADDITIONAL_VALUE = (16.5 * 3300) + 105000 + 1000000;
 
 // Module-level cache to ensure single fetch per page load
 let cachedBalance = null;
 let fetchPromise = null;
+
+async function fetchNetWorth() {
+  const chainParams = CHAINS.map(c => `chains[]=${c}`).join('&');
+  const response = await fetch(
+    `https://deep-index.moralis.io/api/v2.2/wallets/${WALLET_ADDRESS}/net-worth?${chainParams}&exclude_spam=true&exclude_unverified_contracts=true`,
+    {
+      headers: {
+        'X-API-Key': MORALIS_API_KEY,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Net worth API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.total_networth_usd ? parseFloat(data.total_networth_usd) : 0;
+}
+
+async function fetchDefiPositions() {
+  let totalDefiValue = 0;
+
+  // Fetch DeFi summary for each chain
+  for (const chain of CHAINS) {
+    try {
+      const response = await fetch(
+        `https://deep-index.moralis.io/api/v2.2/wallets/${WALLET_ADDRESS}/defi/summary?chain=${chain}`,
+        {
+          headers: {
+            'X-API-Key': MORALIS_API_KEY,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.total_usd_value) {
+          totalDefiValue += parseFloat(data.total_usd_value);
+        }
+      }
+    } catch (err) {
+      console.warn(`Failed to fetch DeFi summary for ${chain}:`, err);
+    }
+  }
+
+  return totalDefiValue;
+}
 
 async function fetchWalletBalance() {
   // Return cached result if available
@@ -21,22 +72,15 @@ async function fetchWalletBalance() {
   // Start new fetch
   fetchPromise = (async () => {
     try {
-      const response = await fetch(
-        `https://api.zerion.io/v1/wallets/${WALLET_ADDRESS}/portfolio?currency=usd`,
-        {
-          headers: {
-            'Authorization': `Basic ${btoa(ZERION_API_KEY + ':')}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      // Fetch net worth and DeFi positions in parallel
+      const [netWorth, defiValue] = await Promise.all([
+        fetchNetWorth(),
+        fetchDefiPositions(),
+      ]);
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      cachedBalance = data?.data?.attributes?.total?.positions || 0;
+      // Combine values (net worth already includes tokens, add DeFi on top)
+      // Plus additional value for assets not tracked by API
+      cachedBalance = netWorth + defiValue + ADDITIONAL_VALUE;
       return cachedBalance;
     } catch (err) {
       console.error('Failed to fetch wallet balance:', err);

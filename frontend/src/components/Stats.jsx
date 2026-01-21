@@ -10,8 +10,8 @@ function Stats() {
   return (
     <div className="glass rounded-2xl md:rounded-3xl p-3 md:p-5 flex justify-around">
       <Stat value={protectedValue} label="Protected" />
-      <Stat value="0" label="Arks" />
-      <Stat value="0" label="Users" />
+      <Stat value="6" label="Arks" />
+      <Stat value="4" label="Users" />
     </div>
   );
 }
