@@ -25144,7 +25144,7 @@ function Header() {
                 className: "flex items-center gap-2 md:gap-3",
                 children: [
                     /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("button", {
-                        className: "glass-btn px-3 md:px-5 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium hidden sm:block text-slate-600",
+                        className: "glass-btn px-3 md:px-5 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium hidden sm:block text-slate-600 shadow-lg shadow-indigo-400/40",
                         children: "Features"
                     }, void 0, false, {
                         fileName: "src/components/Header.jsx",
@@ -25152,7 +25152,7 @@ function Header() {
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("button", {
-                        className: "glass-btn px-3 md:px-5 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium hidden sm:block text-slate-600",
+                        className: "glass-btn px-3 md:px-5 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium hidden sm:block text-slate-600 shadow-lg shadow-indigo-400/40",
                         children: "About"
                     }, void 0, false, {
                         fileName: "src/components/Header.jsx",
@@ -25160,7 +25160,7 @@ function Header() {
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("button", {
-                        className: "solid-btn px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-semibold text-indigo-600",
+                        className: "solid-btn px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-semibold text-indigo-600 shadow-lg shadow-indigo-400/45",
                         children: "Launch App"
                     }, void 0, false, {
                         fileName: "src/components/Header.jsx",
@@ -27550,7 +27550,7 @@ function Hero() {
                 className: "flex flex-col sm:flex-row gap-3 md:gap-4 justify-center xl:justify-start",
                 children: [
                     /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("button", {
-                        className: "solid-btn px-6 md:px-8 py-3 md:py-4 rounded-2xl font-semibold text-indigo-600 text-base md:text-lg",
+                        className: "solid-btn px-6 md:px-8 py-3 md:py-4 rounded-2xl font-semibold text-indigo-600 text-base md:text-lg shadow-lg shadow-indigo-400/45",
                         children: "Create Your Ark"
                     }, void 0, false, {
                         fileName: "src/components/Hero.jsx",
@@ -27558,7 +27558,7 @@ function Hero() {
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("button", {
-                        className: "glass-btn px-6 md:px-8 py-3 md:py-4 rounded-2xl font-semibold text-slate-600 text-base md:text-lg",
+                        className: "glass-btn px-6 md:px-8 py-3 md:py-4 rounded-2xl font-semibold text-slate-600 text-base md:text-lg shadow-lg shadow-indigo-400/40",
                         children: "Learn More"
                     }, void 0, false, {
                         fileName: "src/components/Hero.jsx",

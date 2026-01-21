@@ -11,10 +11,10 @@ function Hero() {
         A friendly dead man's switch ensuring your digital assets reach your loved ones. Simple, secure, automatic.
       </p>
       <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center xl:justify-start">
-        <button className="solid-btn px-6 md:px-8 py-3 md:py-4 rounded-2xl font-semibold text-indigo-600 text-base md:text-lg">
+        <button className="solid-btn px-6 md:px-8 py-3 md:py-4 rounded-2xl font-semibold text-indigo-600 text-base md:text-lg shadow-lg shadow-indigo-400/45">
           Create Your Ark
         </button>
-        <button className="glass-btn px-6 md:px-8 py-3 md:py-4 rounded-2xl font-semibold text-slate-600 text-base md:text-lg">
+        <button className="glass-btn px-6 md:px-8 py-3 md:py-4 rounded-2xl font-semibold text-slate-600 text-base md:text-lg shadow-lg shadow-indigo-400/40">
           Learn More
         </button>
       </div>
