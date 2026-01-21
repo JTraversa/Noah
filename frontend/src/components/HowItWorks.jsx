@@ -9,14 +9,14 @@ const steps = [
 
 function HowItWorks() {
   return (
-    <div className="glass rounded-3xl p-6">
-      <h3 className="text-lg font-semibold mb-4 text-white/90">How It Works</h3>
-      <div className="flex items-center gap-3">
+    <div className="glass rounded-2xl md:rounded-3xl p-4 md:p-6">
+      <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 text-slate-700">How It Works</h3>
+      <div className="flex items-center gap-2 md:gap-3">
         {steps.map((step, index) => (
           <React.Fragment key={index}>
             <Step {...step} />
             {index < steps.length - 1 && (
-              <div className="text-white/40 text-xl">→</div>
+              <div className="text-slate-400 text-base md:text-xl hidden sm:block">→</div>
             )}
           </React.Fragment>
         ))}

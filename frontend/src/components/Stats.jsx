@@ -9,7 +9,7 @@ const stats = [
 
 function Stats() {
   return (
-    <div className="glass rounded-3xl p-5 flex justify-around">
+    <div className="glass rounded-2xl md:rounded-3xl p-3 md:p-5 flex justify-around">
       {stats.map((stat, index) => (
         <Stat key={index} {...stat} />
       ))}

@@ -13,7 +13,7 @@ html, body, #root {
 }
 
 .gradient-bg {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%, #f8fafc 100%);
   background-size: 200% 200%;
   animation: gradientMove 8s ease infinite;
 }
@@ -25,30 +25,31 @@ html, body, #root {
 }
 
 .glass {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.1);
 }
 
 .glass-dark {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.4);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
 .glass-btn {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.7);
   transition: all 0.3s ease;
 }
 
 .glass-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.7);
   transform: translateY(-2px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
 }
 
 .solid-btn {
@@ -59,4 +60,36 @@ html, body, #root {
 .solid-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.orb-1 {
+  animation: float1 20s ease-in-out infinite;
+}
+
+.orb-2 {
+  animation: float2 25s ease-in-out infinite;
+}
+
+.orb-3 {
+  animation: float3 18s ease-in-out infinite;
+}
+
+@keyframes float1 {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(300px, -240px); }
+  50% { transform: translate(-180px, 300px); }
+  75% { transform: translate(240px, 180px); }
+}
+
+@keyframes float2 {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-360px, 240px); }
+  50% { transform: translate(300px, -300px); }
+  75% { transform: translate(-240px, -180px); }
+}
+
+@keyframes float3 {
+  0%, 100% { transform: translate(0, 0); }
+  33% { transform: translate(270px, 270px); }
+  66% { transform: translate(-300px, 120px); }
 }

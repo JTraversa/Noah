@@ -2,19 +2,19 @@ import React from 'react';
 
 function Hero() {
   return (
-    <div className="flex-1 flex flex-col justify-center">
-      <h2 className="text-6xl font-bold leading-tight mb-6">
+    <div className="flex flex-col justify-center text-center xl:text-left">
+      <h2 className="text-4xl md:text-5xl xl:text-6xl font-bold leading-tight mb-4 md:mb-6">
         Protect Your<br />
-        <span className="text-white/90">Crypto Legacy</span>
+        <span className="text-indigo-600">Crypto Legacy</span>
       </h2>
-      <p className="text-xl text-white/70 mb-8 max-w-lg leading-relaxed">
+      <p className="text-lg md:text-xl text-slate-500 mb-6 md:mb-8 max-w-lg mx-auto xl:mx-0 leading-relaxed">
         A friendly dead man's switch ensuring your digital assets reach your loved ones. Simple, secure, automatic.
       </p>
-      <div className="flex gap-4">
-        <button className="solid-btn px-8 py-4 rounded-2xl font-semibold text-purple-600 text-lg">
+      <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center xl:justify-start">
+        <button className="solid-btn px-6 md:px-8 py-3 md:py-4 rounded-2xl font-semibold text-indigo-600 text-base md:text-lg">
           Create Your Ark
         </button>
-        <button className="glass-btn px-8 py-4 rounded-2xl font-semibold text-lg">
+        <button className="glass-btn px-6 md:px-8 py-3 md:py-4 rounded-2xl font-semibold text-slate-600 text-base md:text-lg">
           Learn More
         </button>
       </div>

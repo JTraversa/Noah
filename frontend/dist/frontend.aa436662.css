@@ -1,0 +1,130 @@
+@import "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap";
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  font-family: Inter, sans-serif;
+  overflow: hidden;
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%, #f8fafc 100%) 0 0 / 200% 200%;
+  animation: 8s infinite gradientMove;
+}
+
+@keyframes gradientMove {
+  0% {
+    background-position: 0%;
+  }
+
+  50% {
+    background-position: 100%;
+  }
+
+  100% {
+    background-position: 0%;
+  }
+}
+
+.glass {
+  -webkit-backdrop-filter: blur(20px);
+  background: #fff9;
+  border: 1px solid #fffc;
+  box-shadow: 0 8px 32px #6366f11a;
+}
+
+.glass-dark {
+  -webkit-backdrop-filter: blur(16px);
+  background: #fff6;
+  border: 1px solid #fff9;
+}
+
+.glass-btn {
+  backdrop-filter: blur(10px);
+  background: #ffffff80;
+  border: 1px solid #ffffffb3;
+  transition: all .3s;
+}
+
+.glass-btn:hover {
+  background: #ffffffb3;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px #6366f126;
+}
+
+.solid-btn {
+  background: #fff;
+  transition: all .3s;
+}
+
+.solid-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px #0003;
+}
+
+.orb-1 {
+  animation: 20s ease-in-out infinite float1;
+}
+
+.orb-2 {
+  animation: 25s ease-in-out infinite float2;
+}
+
+.orb-3 {
+  animation: 18s ease-in-out infinite float3;
+}
+
+@keyframes float1 {
+  0%, 100% {
+    transform: translate(0);
+  }
+
+  25% {
+    transform: translate(300px, -240px);
+  }
+
+  50% {
+    transform: translate(-180px, 300px);
+  }
+
+  75% {
+    transform: translate(240px, 180px);
+  }
+}
+
+@keyframes float2 {
+  0%, 100% {
+    transform: translate(0);
+  }
+
+  25% {
+    transform: translate(-360px, 240px);
+  }
+
+  50% {
+    transform: translate(300px, -300px);
+  }
+
+  75% {
+    transform: translate(-240px, -180px);
+  }
+}
+
+@keyframes float3 {
+  0%, 100% {
+    transform: translate(0);
+  }
+
+  33% {
+    transform: translate(270px, 270px);
+  }
+
+  66% {
+    transform: translate(-300px, 120px);
+  }
+}
+/*# sourceMappingURL=frontend.aa436662.css.map */
