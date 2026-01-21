@@ -5,7 +5,9 @@
       "Bash(npm run dev:*)",
       "Bash(npx next dev --turbopack)",
       "Bash(node:*)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "Bash(wc:*)",
+      "Bash(dir:*)"
     ]
   }
 }
