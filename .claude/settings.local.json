@@ -7,7 +7,9 @@
       "Bash(node:*)",
       "Bash(npx next:*)",
       "Bash(wc:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "WebSearch",
+      "WebFetch(domain:developers.zerion.io)"
     ]
   }
 }

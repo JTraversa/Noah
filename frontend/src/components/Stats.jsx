@@ -1,18 +1,17 @@
 import React from 'react';
 import Stat from './Stat';
-
-const stats = [
-  { value: '$0', label: 'Protected' },
-  { value: '0', label: 'Arks' },
-  { value: '0', label: 'Users' },
-];
+import { useWalletBalance, formatUSD } from '../hooks/useWalletBalance';
 
 function Stats() {
+  const { balance, loading } = useWalletBalance();
+
+  const protectedValue = loading ? '...' : formatUSD(balance);
+
   return (
     <div className="glass rounded-2xl md:rounded-3xl p-3 md:p-5 flex justify-around">
-      {stats.map((stat, index) => (
-        <Stat key={index} {...stat} />
-      ))}
+      <Stat value={protectedValue} label="Protected" />
+      <Stat value="0" label="Arks" />
+      <Stat value="0" label="Users" />
     </div>
   );
 }

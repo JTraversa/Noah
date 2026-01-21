@@ -27885,36 +27885,51 @@ var _react = require("react");
 var _reactDefault = parcelHelpers.interopDefault(_react);
 var _stat = require("./Stat");
 var _statDefault = parcelHelpers.interopDefault(_stat);
-const stats = [
-    {
-        value: '$0',
-        label: 'Protected'
-    },
-    {
-        value: '0',
-        label: 'Arks'
-    },
-    {
-        value: '0',
-        label: 'Users'
-    }
-];
+var _useWalletBalance = require("../hooks/useWalletBalance");
+var _s = $RefreshSig$();
 function Stats() {
+    _s();
+    const { balance, loading } = (0, _useWalletBalance.useWalletBalance)();
+    const protectedValue = loading ? '...' : (0, _useWalletBalance.formatUSD)(balance);
     return /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("div", {
         className: "glass rounded-2xl md:rounded-3xl p-3 md:p-5 flex justify-around",
-        children: stats.map((stat, index)=>/*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)((0, _statDefault.default), {
-                ...stat
-            }, index, false, {
+        children: [
+            /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)((0, _statDefault.default), {
+                value: protectedValue,
+                label: "Protected"
+            }, void 0, false, {
+                fileName: "src/components/Stats.jsx",
+                lineNumber: 12,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)((0, _statDefault.default), {
+                value: "0",
+                label: "Arks"
+            }, void 0, false, {
+                fileName: "src/components/Stats.jsx",
+                lineNumber: 13,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)((0, _statDefault.default), {
+                value: "0",
+                label: "Users"
+            }, void 0, false, {
                 fileName: "src/components/Stats.jsx",
                 lineNumber: 14,
-                columnNumber: 9
-            }, this))
-    }, void 0, false, {
+                columnNumber: 7
+            }, this)
+        ]
+    }, void 0, true, {
         fileName: "src/components/Stats.jsx",
-        lineNumber: 12,
+        lineNumber: 11,
         columnNumber: 5
     }, this);
 }
+_s(Stats, "eiBXpeQW9ewleBuqjcZbJeXh5e4=", false, function() {
+    return [
+        (0, _useWalletBalance.useWalletBalance)
+    ];
+});
 _c = Stats;
 exports.default = Stats;
 var _c;
@@ -27925,7 +27940,7 @@ $RefreshReg$(_c, "Stats");
   globalThis.$RefreshReg$ = prevRefreshReg;
   globalThis.$RefreshSig$ = prevRefreshSig;
 }
-},{"react/jsx-dev-runtime":"dVPUn","react":"jMk1U","./Stat":"8nAcP","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT","@parcel/transformer-react-refresh-wrap/lib/helpers/helpers.js":"7h6Pi"}],"8nAcP":[function(require,module,exports,__globalThis) {
+},{"react/jsx-dev-runtime":"dVPUn","react":"jMk1U","./Stat":"8nAcP","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT","@parcel/transformer-react-refresh-wrap/lib/helpers/helpers.js":"7h6Pi","../hooks/useWalletBalance":"6AtpB"}],"8nAcP":[function(require,module,exports,__globalThis) {
 var $parcel$ReactRefreshHelpers$e0c6 = require("@parcel/transformer-react-refresh-wrap/lib/helpers/helpers.js");
 $parcel$ReactRefreshHelpers$e0c6.init();
 var prevRefreshReg = globalThis.$RefreshReg$;
@@ -27975,7 +27990,85 @@ $RefreshReg$(_c, "Stat");
   globalThis.$RefreshReg$ = prevRefreshReg;
   globalThis.$RefreshSig$ = prevRefreshSig;
 }
-},{"react/jsx-dev-runtime":"dVPUn","react":"jMk1U","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT","@parcel/transformer-react-refresh-wrap/lib/helpers/helpers.js":"7h6Pi"}],"lU1xT":[function(require,module,exports,__globalThis) {
+},{"react/jsx-dev-runtime":"dVPUn","react":"jMk1U","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT","@parcel/transformer-react-refresh-wrap/lib/helpers/helpers.js":"7h6Pi"}],"6AtpB":[function(require,module,exports,__globalThis) {
+var $parcel$ReactRefreshHelpers$bb49 = require("@parcel/transformer-react-refresh-wrap/lib/helpers/helpers.js");
+$parcel$ReactRefreshHelpers$bb49.init();
+var prevRefreshReg = globalThis.$RefreshReg$;
+var prevRefreshSig = globalThis.$RefreshSig$;
+$parcel$ReactRefreshHelpers$bb49.prelude(module);
+
+try {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "useWalletBalance", ()=>useWalletBalance);
+parcelHelpers.export(exports, "formatUSD", ()=>formatUSD);
+var _react = require("react");
+var _s = $RefreshSig$();
+const ZERION_API_KEY = 'zk_b12410442a3249daa38955e76a4d5327';
+const WALLET_ADDRESS = '0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C';
+// Module-level cache to ensure single fetch per page load
+let cachedBalance = null;
+let fetchPromise = null;
+async function fetchWalletBalance() {
+    // Return cached result if available
+    if (cachedBalance !== null) return cachedBalance;
+    // Return existing promise if fetch is in progress
+    if (fetchPromise) return fetchPromise;
+    // Start new fetch
+    fetchPromise = (async ()=>{
+        try {
+            const response = await fetch(`https://api.zerion.io/v1/wallets/${WALLET_ADDRESS}/portfolio?currency=usd`, {
+                headers: {
+                    'Authorization': `Basic ${btoa(ZERION_API_KEY + ':')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (!response.ok) throw new Error(`API error: ${response.status}`);
+            const data = await response.json();
+            cachedBalance = data?.data?.attributes?.total?.positions || 0;
+            return cachedBalance;
+        } catch (err) {
+            console.error('Failed to fetch wallet balance:', err);
+            cachedBalance = 0;
+            return 0;
+        }
+    })();
+    return fetchPromise;
+}
+function useWalletBalance() {
+    _s();
+    const [balance, setBalance] = (0, _react.useState)(cachedBalance);
+    const [loading, setLoading] = (0, _react.useState)(cachedBalance === null);
+    (0, _react.useEffect)(()=>{
+        if (cachedBalance !== null) {
+            setBalance(cachedBalance);
+            setLoading(false);
+            return;
+        }
+        fetchWalletBalance().then((value)=>{
+            setBalance(value);
+            setLoading(false);
+        });
+    }, []);
+    return {
+        balance,
+        loading
+    };
+}
+_s(useWalletBalance, "P/GKfQYik2pwsKtDpLSJJiQMSNc=");
+function formatUSD(value) {
+    if (value === null || value === undefined) return '$0';
+    if (value >= 1000000) return `$${(value / 1000000).toFixed(2)}M`;
+    else if (value >= 1000) return `$${(value / 1000).toFixed(2)}K`;
+    else return `$${value.toFixed(2)}`;
+}
+
+  $parcel$ReactRefreshHelpers$bb49.postlude(module);
+} finally {
+  globalThis.$RefreshReg$ = prevRefreshReg;
+  globalThis.$RefreshSig$ = prevRefreshSig;
+}
+},{"react":"jMk1U","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT","@parcel/transformer-react-refresh-wrap/lib/helpers/helpers.js":"7h6Pi"}],"lU1xT":[function(require,module,exports,__globalThis) {
 var $parcel$ReactRefreshHelpers$cfa1 = require("@parcel/transformer-react-refresh-wrap/lib/helpers/helpers.js");
 $parcel$ReactRefreshHelpers$cfa1.init();
 var prevRefreshReg = globalThis.$RefreshReg$;
