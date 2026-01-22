@@ -27540,7 +27540,7 @@ function Hero() {
             }, this),
             /*#__PURE__*/ (0, _jsxDevRuntime.jsxDEV)("p", {
                 className: "text-lg md:text-xl text-slate-500 mb-6 md:mb-8 max-w-lg mx-auto xl:mx-0 leading-relaxed",
-                children: "A friendly dead man's switch ensuring your digital assets reach your loved ones or backup wallets in the event of a loss of life or hardware. Simple, secure, automatic."
+                children: "A friendly dead man's switch ensuring your digital assets reach loved ones or backup wallets in the event of a loss of life or hardware. Simple, secure, automatic."
             }, void 0, false, {
                 fileName: "src/components/Hero.jsx",
                 lineNumber: 10,
