@@ -93,3 +93,19 @@ html, body, #root {
   33% { transform: translate(270px, 270px); }
   66% { transform: translate(-300px, 120px); }
 }
+
+/* Odometer roll-up animation */
+@keyframes roll-up {
+  0% {
+    transform: translateY(120%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-roll-up {
+  animation: roll-up 300ms ease-out forwards;
+}

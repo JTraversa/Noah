@@ -8,8 +8,8 @@ function Stats() {
   const protectedValue = loading ? '...' : formatUSD(balance);
 
   return (
-    <div className="glass rounded-2xl md:rounded-3xl p-3 md:p-5 flex justify-around">
-      <Stat value={protectedValue} label="Protected" />
+    <div className="glass rounded-2xl md:rounded-3xl p-3 md:p-5 grid grid-cols-3 gap-4">
+      <Stat value={protectedValue} label="Protected" animated />
       <Stat value="6" label="Arks" />
       <Stat value="4" label="Users" />
     </div>

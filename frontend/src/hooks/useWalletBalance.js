@@ -1,13 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const MORALIS_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6ImY0ZTMzNTY4LTI3ZWMtNGI3ZS1hYWVlLTUxNTAwMzA0NTgwZSIsIm9yZ0lkIjoiMzcwOTMzIiwidXNlcklkIjoiMzgxMjE2IiwidHlwZUlkIjoiMzMwYzBlZmMtMWY3NS00OGJiLWJmYzUtMWE3N2IwZDc3ZTA1IiwidHlwZSI6IlBST0pFQ1QiLCJpYXQiOjE3MDQ0NTA4MzcsImV4cCI6NDg2MDIxMDgzN30.mQ3AgGu9_BGpKNG6meMI3WiSF-7LGkdih2MYk_BqCl4';
 const WALLET_ADDRESS = '0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C';
 const CHAINS = ['arbitrum'];
 const ADDITIONAL_VALUE = (16.5 * 3300) + 105000 + 1000000;
 
+// 12% APY - per millisecond rate
+const SECONDS_PER_YEAR = 365.25 * 24 * 60 * 60;
+const APY_RATE = 0.12;
+const RATE_PER_MS = APY_RATE / (SECONDS_PER_YEAR * 1000);
+
 // Module-level cache to ensure single fetch per page load
 let cachedBalance = null;
 let fetchPromise = null;
+let fetchTimestamp = null;
 
 async function fetchNetWorth() {
   const chainParams = CHAINS.map(c => `chains[]=${c}`).join('&');
@@ -81,10 +87,12 @@ async function fetchWalletBalance() {
       // Combine values (net worth already includes tokens, add DeFi on top)
       // Plus additional value for assets not tracked by API
       cachedBalance = netWorth + defiValue + ADDITIONAL_VALUE;
+      fetchTimestamp = Date.now();
       return cachedBalance;
     } catch (err) {
       console.error('Failed to fetch wallet balance:', err);
       cachedBalance = 0;
+      fetchTimestamp = Date.now();
       return 0;
     }
   })();
@@ -92,22 +100,41 @@ async function fetchWalletBalance() {
   return fetchPromise;
 }
 
+// Calculate current value with APY growth
+function calculateCurrentValue(baseValue, startTime) {
+  const elapsed = Date.now() - startTime;
+  return baseValue * (1 + (elapsed * RATE_PER_MS));
+}
+
 export function useWalletBalance() {
   const [balance, setBalance] = useState(cachedBalance);
   const [loading, setLoading] = useState(cachedBalance === null);
+  const animationRef = useRef(null);
 
   useEffect(() => {
-    if (cachedBalance !== null) {
+    if (cachedBalance === null) {
+      fetchWalletBalance().then((value) => {
+        setBalance(value);
+        setLoading(false);
+      });
+    } else {
       setBalance(cachedBalance);
       setLoading(false);
-      return;
     }
-
-    fetchWalletBalance().then((value) => {
-      setBalance(value);
-      setLoading(false);
-    });
   }, []);
+
+  // Update every 5 seconds - odometer animation handles the visual transition
+  useEffect(() => {
+    if (loading || cachedBalance === null) return;
+
+    // Update every 5 seconds
+    const interval = setInterval(() => {
+      const currentValue = calculateCurrentValue(cachedBalance, fetchTimestamp);
+      setBalance(currentValue);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [loading]);
 
   return { balance, loading };
 }
@@ -115,11 +142,5 @@ export function useWalletBalance() {
 export function formatUSD(value) {
   if (value === null || value === undefined) return '$0';
 
-  if (value >= 1000000) {
-    return `$${(value / 1000000).toFixed(2)}M`;
-  } else if (value >= 1000) {
-    return `$${(value / 1000).toFixed(2)}K`;
-  } else {
-    return `$${value.toFixed(2)}`;
-  }
+  return `$${value.toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`;
 }

@@ -8,7 +8,7 @@ import Footer from './components/Footer';
 
 function App() {
   return (
-    <div className="min-h-screen w-screen gradient-bg flex flex-col p-4 md:p-8 text-slate-700 overflow-auto xl:overflow-hidden">
+    <div className="min-h-screen w-screen gradient-bg flex flex-col p-4 md:p-8 text-slate-700 overflow-auto min-[1700px]:overflow-hidden">
       {/* Floating orbs for depth */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="orb-1 absolute top-20 left-20 w-72 h-72 bg-indigo-400/60 rounded-full blur-3xl" />
@@ -18,12 +18,12 @@ function App() {
 
       <Header />
 
-      <main className="relative z-10 flex-1 flex flex-col gap-8 py-8 xl:grid xl:grid-cols-6 xl:items-center">
-        <div className="xl:col-start-2 xl:col-span-2">
+      <main className="relative z-10 flex-1 flex flex-col gap-8 py-8 min-[1700px]:grid min-[1700px]:grid-cols-6 min-[1700px]:items-center">
+        <div className="min-[1700px]:col-start-2 min-[1700px]:col-span-2">
           <Hero />
         </div>
 
-        <div className="flex flex-col gap-4 xl:gap-5 xl:col-span-2">
+        <div className="flex flex-col gap-4 min-[1700px]:gap-5 min-[1700px]:col-span-2">
           <Features />
           <HowItWorks />
           <Stats />
