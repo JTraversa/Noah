@@ -2,9 +2,9 @@ import React from 'react';
 import FeatureCard from './FeatureCard';
 
 const features = [
-  { icon: '🛡️', title: 'Set & Forget', desc: 'Create an Ark with your beneficiary' },
-  { icon: '🔔', title: 'Stay Active', desc: 'Ping to reset your timer' },
-  { icon: '💝', title: 'Auto Transfer', desc: 'Assets move when needed' },
+  { icon: '💝', title: 'MEV Auto Transfer', desc: 'Assets transfer to beneficiaries automatically through MEV incentivization' },
+  { icon: '🛡️', title: 'Simple & Optimized', desc: 'Simple OSS code and optimized execution for wallet integration' },
+  { icon: '🔔', title: 'Deadman Switch', desc: 'Identifies lost/damaged hardware or loss of life through "deadman switch" detection' },
 ];
 
 function Features() {

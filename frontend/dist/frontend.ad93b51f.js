@@ -27605,19 +27605,19 @@ var _featureCard = require("./FeatureCard");
 var _featureCardDefault = parcelHelpers.interopDefault(_featureCard);
 const features = [
     {
+        icon: "\uD83D\uDC9D",
+        title: 'MEV Auto Transfer',
+        desc: 'Assets transfer to beneficiaries automatically through MEV incentivization'
+    },
+    {
         icon: "\uD83D\uDEE1\uFE0F",
-        title: 'Set & Forget',
-        desc: 'Create an Ark with your beneficiary'
+        title: 'Simple & Optimized',
+        desc: 'Simple OSS code and optimized execution for wallet integration'
     },
     {
         icon: "\uD83D\uDD14",
-        title: 'Stay Active',
-        desc: 'Ping to reset your timer'
-    },
-    {
-        icon: "\uD83D\uDC9D",
-        title: 'Auto Transfer',
-        desc: 'Assets move when needed'
+        title: 'Deadman Switch',
+        desc: 'Identifies lost/damaged hardware or loss of life through "deadman switch" detection'
     }
 ];
 function Features() {
