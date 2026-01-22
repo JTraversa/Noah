@@ -2,9 +2,13 @@ import React from 'react';
 import Step from './Step';
 
 const steps = [
-  { num: '1', title: 'Build Ark', desc: 'Set beneficiary & deadline' },
-  { num: '2', title: 'Add Tokens', desc: 'Deposit assets to protect' },
-  { num: '3', title: 'Stay Active', desc: 'Ping or auto-transfer' },
+  { num: '1', title: 'Configure Your Ark', desc: [
+    'Identify which tokens you want protected',
+    'Set your beneficiary wallet',
+    'Set deadman switch timeout length'
+  ]},
+  { num: '2', title: 'Build your Ark', desc: ['Build your Ark on chain','Approve the movement of tokens under your configured conditions'] },
+  { num: '3', title: 'Keep Using Your Wallet', desc: ['Ping your Ark on occasion to keep it active', '(COMING SOON) Continue using your wallet normally'] },
 ];
 
 function HowItWorks() {
