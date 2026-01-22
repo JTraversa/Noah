@@ -14,6 +14,7 @@ function App() {
         <div className="orb-1 absolute top-20 left-20 w-72 h-72 bg-indigo-400/60 rounded-full blur-3xl" />
         <div className="orb-2 absolute bottom-20 right-32 w-96 h-96 bg-violet-400/50 rounded-full blur-3xl" />
         <div className="orb-3 absolute top-1/2 left-1/2 w-80 h-80 bg-indigo-300/60 rounded-full blur-3xl" />
+        <div className="orb-4 absolute top-1/3 right-1/4 w-64 h-64 bg-purple-400/40 rounded-full blur-3xl" />
       </div>
 
       <Header />

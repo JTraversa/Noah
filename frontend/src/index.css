@@ -94,6 +94,18 @@ html, body, #root {
   66% { transform: translate(-300px, 120px); }
 }
 
+.orb-4 {
+  animation: float4 22s ease-in-out infinite;
+}
+
+@keyframes float4 {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-200px, 150px); }
+  40% { transform: translate(150px, -200px); }
+  60% { transform: translate(-100px, -150px); }
+  80% { transform: translate(200px, 100px); }
+}
+
 /* Odometer roll-up animation */
 @keyframes roll-up {
   0% {
