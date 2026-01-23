@@ -5,7 +5,9 @@
       "Bash(node --version:*)",
       "Bash(npm install:*)",
       "Bash(dir node_modules)",
-      "Bash(npm i:*)"
+      "Bash(npm i:*)",
+      "Bash(forge test:*)",
+      "Bash(forge install:*)"
     ]
   }
 }
