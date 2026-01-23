@@ -10,7 +10,8 @@
       "Bash(dir:*)",
       "WebSearch",
       "WebFetch(domain:developers.zerion.io)",
-      "WebFetch(domain:docs.moralis.com)"
+      "WebFetch(domain:docs.moralis.com)",
+      "Bash(powershell -Command \"\\(Get-Item ''C:\\\\Users\\\\Fractal - Springs\\\\Documents\\\\GitHub\\\\ETHNYC2025\\\\frontend\\\\src\\\\assets\\\\NoahLogoWordmark.png''\\).Length\")"
     ]
   }
 }
