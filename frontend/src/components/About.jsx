@@ -1,63 +1,49 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const contracts = [
-  {
-    name: 'Noah',
-    version: 'V1',
-    file: 'noah.sol',
-    description: 'A dead man\'s switch contract to transfer a user\'s tokens to a beneficiary after a set time.',
-    struct: {
-      name: 'Ark',
-      fields: [
-        { name: 'beneficiary', type: 'address', desc: 'Address that receives tokens when flood is triggered' },
-        { name: 'deadline', type: 'uint256', desc: 'Timestamp when the Ark can be flooded' },
-        { name: 'deadlineDuration', type: 'uint256', desc: 'Duration in seconds for deadline resets' },
-        { name: 'tokens', type: 'address[]', desc: 'Array of token addresses managed by this Ark' },
-      ]
-    },
-    functions: [
-      { name: 'buildArk', params: 'address beneficiary, uint256 deadlineDuration, address[] tokens', desc: 'Builds an Ark for the caller. Sets beneficiary, deadline duration, and tokens to manage.' },
-      { name: 'pingArk', params: '', desc: 'Pings an Ark to reset its timer, extending the deadline.' },
-      { name: 'flood', params: 'address user', desc: 'Triggers flood process for a user, transferring their tokens to beneficiary. Only callable after deadline.' },
-      { name: 'addPassengers', params: 'address[] newTokens', desc: 'Adds new passengers (tokens) to a user\'s Ark.' },
-      { name: 'removePassenger', params: 'address token', desc: 'Removes a passenger (token) from a user\'s Ark.' },
-      { name: 'updateDeadlineDuration', params: 'uint256 newDuration', desc: 'Updates the deadline duration for future resets.' },
-      { name: 'getArk', params: 'address user', desc: 'Returns beneficiary, deadline, and deadline duration for a user\'s Ark.' },
-    ],
-    events: ['ArkBuilt', 'ArkPinged', 'FloodTriggered', 'PassengersAdded', 'PassengerRemoved', 'DeadlineUpdated']
+const contract = {
+  name: 'Noah',
+  file: 'noah.sol',
+  description: 'A dead man\'s switch contract to transfer a user\'s tokens to a beneficiary after a set time.',
+  struct: {
+    name: 'Ark',
+    description: 'The Ark struct represents a user\'s dead man\'s switch configuration.',
+    fields: [
+      { name: 'beneficiary', type: 'address', desc: 'The address that will receive the tokens when the flood is triggered.' },
+      { name: 'deadline', type: 'uint256', desc: 'The Unix timestamp after which the Ark can be flooded.' },
+      { name: 'deadlineDuration', type: 'uint256', desc: 'The duration in seconds used to calculate new deadlines on ping.' },
+      { name: 'tokens', type: 'address[]', desc: 'The array of ERC20 token addresses managed by this Ark.' },
+    ]
   },
-  {
-    name: 'Noah',
-    version: 'V2',
-    file: 'noahv2.sol',
-    description: 'A dead man\'s switch contract with per-token Ark management for more granular control.',
-    struct: {
-      name: 'Ark',
-      fields: [
-        { name: 'beneficiary', type: 'address', desc: 'Address that receives tokens when flood is triggered' },
-        { name: 'deadline', type: 'uint256', desc: 'Timestamp when the Ark can be flooded' },
-        { name: 'deadlineDuration', type: 'uint256', desc: 'Duration in seconds for deadline resets' },
-      ]
-    },
-    functions: [
-      { name: 'buildArk', params: 'address beneficiary, uint256 deadlineDuration, address[] tokens', desc: 'Builds individual Arks for each token provided. Creates separate Ark per token for granular control.' },
-      { name: 'destroyArk', params: 'address token', desc: 'Destroys an Ark for a specific token, removing protection for that asset.' },
-      { name: 'pingArk', params: 'address[] tokens', desc: 'Pings multiple Arks to reset their timers. Accepts array of tokens to ping.' },
-      { name: 'flood', params: 'address[] users, address[] tokens', desc: 'Triggers flood for multiple user/token pairs. Transfers tokens to respective beneficiaries.' },
-      { name: 'updateDeadlineDuration', params: 'address token, uint256 newDuration', desc: 'Updates deadline duration for a specific token\'s Ark.' },
-      { name: 'getArk', params: 'address user, address token', desc: 'Returns Ark data for a specific user and token combination.' },
-    ],
-    events: ['ArkBuilt', 'ArkDestroyed', 'ArkPinged', 'FloodTriggered', 'DeadlineUpdated']
-  }
-];
+  mapping: {
+    name: 'arks',
+    signature: 'mapping(address => Ark)',
+    desc: 'Mapping from user address to their Ark configuration. Each user can only have one Ark at a time. A deadline of 0 indicates no active Ark.'
+  },
+  functions: [
+    { name: 'buildArk', params: 'address beneficiary, uint256 deadlineDuration, address[] tokens', desc: 'Builds an Ark for the caller. Sets beneficiary, deadline duration, and tokens to manage.' },
+    { name: 'pingArk', params: '', desc: 'Pings an Ark to reset its timer, extending the deadline.' },
+    { name: 'flood', params: 'address user', desc: 'Triggers flood process for a user, transferring their tokens to beneficiary. Only callable after deadline.' },
+    { name: 'addPassengers', params: 'address[] newTokens', desc: 'Adds new passengers (tokens) to a user\'s Ark.' },
+    { name: 'removePassenger', params: 'address token', desc: 'Removes a passenger (token) from a user\'s Ark.' },
+    { name: 'updateDeadlineDuration', params: 'uint256 newDuration', desc: 'Updates the deadline duration for future resets.' },
+    { name: 'getArk', params: 'address user', desc: 'Returns beneficiary, deadline, deadline duration, and tokens for a user\'s Ark.' },
+  ],
+  events: [
+    { name: 'ArkBuilt', params: 'address indexed user, address indexed beneficiary, uint256 deadline', desc: 'Emitted when a new Ark is created.' },
+    { name: 'ArkPinged', params: 'address indexed user, uint256 newDeadline', desc: 'Emitted when an Ark\'s deadline is reset via ping.' },
+    { name: 'FloodTriggered', params: 'address indexed user, address indexed beneficiary', desc: 'Emitted when a flood is triggered and tokens are transferred to the beneficiary.' },
+    { name: 'PassengersAdded', params: 'address indexed user, address[] newPassengers', desc: 'Emitted when new tokens are added to an Ark.' },
+    { name: 'PassengerRemoved', params: 'address indexed user, address passenger', desc: 'Emitted when a token is removed from an Ark.' },
+    { name: 'DeadlineUpdated', params: 'address indexed user, uint256 newDuration, uint256 newDeadline', desc: 'Emitted when the deadline duration is updated.' },
+  ]
+};
 
 function ContractDoc({ contract }) {
   return (
     <div className="glass-dark rounded-xl md:rounded-2xl p-4 md:p-6">
       <div className="flex items-center gap-2 mb-3">
         <h4 className="text-sm md:text-base font-semibold text-slate-700">{contract.name}</h4>
-        <span className="text-[10px] md:text-xs bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full font-medium">{contract.version}</span>
         <span className="text-[10px] md:text-xs text-slate-400 font-mono">{contract.file}</span>
       </div>
 
@@ -66,6 +52,7 @@ function ContractDoc({ contract }) {
       {/* Struct */}
       <div className="mb-4">
         <h5 className="text-xs md:text-sm font-semibold text-slate-600 mb-2">Struct: {contract.struct.name}</h5>
+        <p className="text-[10px] md:text-xs text-slate-500 mb-2">{contract.struct.description}</p>
         <div className="bg-slate-50/50 rounded-lg p-3 space-y-1">
           {contract.struct.fields.map((field, i) => (
             <div key={i} className="flex items-start gap-2 text-[10px] md:text-xs">
@@ -76,6 +63,20 @@ function ContractDoc({ contract }) {
           ))}
         </div>
       </div>
+
+      {/* Mapping */}
+      {contract.mapping && (
+        <div className="mb-4">
+          <h5 className="text-xs md:text-sm font-semibold text-slate-600 mb-2">Storage</h5>
+          <div className="bg-slate-50/50 rounded-lg p-3">
+            <code className="text-[10px] md:text-xs font-mono">
+              <span className="text-indigo-600">{contract.mapping.signature}</span>
+              <span className="text-slate-700 font-semibold"> {contract.mapping.name}</span>
+            </code>
+            <p className="text-[10px] md:text-xs text-slate-500 mt-1">{contract.mapping.desc}</p>
+          </div>
+        </div>
+      )}
 
       {/* Functions */}
       <div className="mb-4">
@@ -96,9 +97,15 @@ function ContractDoc({ contract }) {
       {/* Events */}
       <div>
         <h5 className="text-xs md:text-sm font-semibold text-slate-600 mb-2">Events</h5>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="space-y-2">
           {contract.events.map((event, i) => (
-            <code key={i} className="text-[10px] md:text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded font-mono">{event}</code>
+            <div key={i} className="bg-slate-50/50 rounded-lg p-3">
+              <code className="text-[10px] md:text-xs font-mono">
+                <span className="text-indigo-600 font-semibold">{event.name}</span>
+                <span className="text-slate-500">({event.params})</span>
+              </code>
+              <p className="text-[10px] md:text-xs text-slate-500 mt-1">{event.desc}</p>
+            </div>
           ))}
         </div>
       </div>
@@ -140,11 +147,7 @@ function About() {
         <p className="text-xs md:text-sm text-slate-500 mb-4">
           Smart contract specifications derived from NatSpec documentation.
         </p>
-        <div className="space-y-4">
-          {contracts.map((contract, i) => (
-            <ContractDoc key={i} contract={contract} />
-          ))}
-        </div>
+        <ContractDoc contract={contract} />
       </div>
     </div>
   );
