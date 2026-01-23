@@ -1,6 +1,6 @@
 import React from 'react';
 
-function Step({ num, title, desc, variant = 'default' }) {
+function Step({ num, title, desc, footnote, variant = 'default' }) {
   const isProtection = variant === 'protection';
 
   const renderDesc = () => {
@@ -23,6 +23,9 @@ function Step({ num, title, desc, variant = 'default' }) {
       </div>
       <div className="font-semibold text-xs md:text-sm text-slate-700 mb-1">{title}</div>
       {renderDesc()}
+      {footnote && (
+        <div className="text-[8px] md:text-[10px] text-slate-400 italic mt-1 leading-tight">{footnote}</div>
+      )}
     </div>
   );
 }
