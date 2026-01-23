@@ -8,9 +8,9 @@ const setupSteps = [
 ];
 
 const protectionSteps = [
-  { num: '1', title: 'Damage Detected', desc: 'Noah identifies damage through deadman switch activation' },
-  { num: '2', title: 'MEV Liquidation', desc: '', footnote: '*Coming soon: Third parties liquidate to a desired token (e.g. USDC) through dutch auctions' },
-  { num: '3', title: 'Tokens Delivered', desc: 'Incentivized participants transfer your tokens to your beneficiary' },
+  { num: '1', title: 'Damage Detection', desc: 'Noah identifies damage through deadman switch activation' },
+  { num: '2', title: 'Token Liquidation', desc: '', footnote: '*Coming soon: Third parties liquidate to a desired token (e.g. USDC) through a dutch auction' },
+  { num: '3', title: 'Token Delivery', desc: 'Incentivized participants transfer your tokens to your beneficiary' },
 ];
 
 function HowItWorks() {
