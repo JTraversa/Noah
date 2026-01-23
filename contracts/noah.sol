@@ -9,21 +9,68 @@ import {IERC20} from "./interfaces/IERC20.sol";
  */
 contract Noah {
 
-
+    /**
+     * @notice The Ark struct represents a user's dead man's switch configuration.
+     * @param beneficiary The address that will receive the tokens when the flood is triggered.
+     * @param deadline The Unix timestamp after which the Ark can be flooded.
+     * @param deadlineDuration The duration in seconds used to calculate new deadlines on ping.
+     * @param tokens The array of ERC20 token addresses managed by this Ark.
+     */
     struct Ark {
         address beneficiary;
         uint256 deadline;
-        uint256 deadlineDuration; // The duration in seconds
+        uint256 deadlineDuration;
         address[] tokens;
     }
 
+    /**
+     * @notice Mapping from user address to their Ark configuration.
+     * @dev Each user can only have one Ark at a time. A deadline of 0 indicates no active Ark.
+     */
     mapping(address => Ark) public arks;
 
+    /**
+     * @notice Emitted when a new Ark is created.
+     * @param user The address of the user who built the Ark.
+     * @param beneficiary The address designated to receive tokens.
+     * @param deadline The initial deadline timestamp for the Ark.
+     */
     event ArkBuilt(address indexed user, address indexed beneficiary, uint256 deadline);
+
+    /**
+     * @notice Emitted when an Ark's deadline is reset via ping.
+     * @param user The address of the user who pinged their Ark.
+     * @param newDeadline The updated deadline timestamp.
+     */
     event ArkPinged(address indexed user, uint256 newDeadline);
-    event FloodTriggered(address indexed user, address indexed beneficiary, uint256 usdcAmount);
+
+    /**
+     * @notice Emitted when a flood is triggered and tokens are transferred to the beneficiary.
+     * @param user The address of the user whose Ark was flooded.
+     * @param beneficiary The address that received the tokens.
+     */
+    event FloodTriggered(address indexed user, address indexed beneficiary);
+
+    /**
+     * @notice Emitted when new tokens are added to an Ark.
+     * @param user The address of the user who added passengers.
+     * @param newPassengers The array of token addresses that were added.
+     */
     event PassengersAdded(address indexed user, address[] newPassengers);
+
+    /**
+     * @notice Emitted when a token is removed from an Ark.
+     * @param user The address of the user who removed the passenger.
+     * @param passenger The token address that was removed.
+     */
     event PassengerRemoved(address indexed user, address passenger);
+
+    /**
+     * @notice Emitted when the deadline duration is updated.
+     * @param user The address of the user who updated the duration.
+     * @param newDuration The new duration in seconds.
+     * @param newDeadline The recalculated deadline timestamp.
+     */
     event DeadlineUpdated(address indexed user, uint256 newDuration, uint256 newDeadline);
 
 
@@ -31,9 +78,9 @@ contract Noah {
     }
 
     // Custom getter for Ark data
-    function getArk(address user, address token) external view returns (address beneficiary, uint256 deadline, uint256 deadlineDuration) {
+    function getArk(address user) external view returns (address beneficiary, uint256 deadline, uint256 deadlineDuration, address[] memory tokens) {
         Ark storage ark = arks[user];
-        return (ark.beneficiary, ark.deadline, ark.deadlineDuration);
+        return (ark.beneficiary, ark.deadline, ark.deadlineDuration, ark.tokens);
     }
 
     /**
@@ -73,7 +120,7 @@ contract Noah {
     }
 
     /**
-     * @notice Triggers the flood process for a user, selling their tokens for USDC.
+     * @notice Triggers the flood process for a user
      * @param _user The address of the user whose assets are being recovered.
      */
     function flood(address _user) external {
@@ -81,7 +128,6 @@ contract Noah {
         require(account.deadline != 0, "Account not initialized");
         require(block.timestamp >= account.deadline, "Deadline has not passed");
 
-        uint256 totalUsdcRecovered = 0;
 
         for (uint i = 0; i < account.tokens.length; i++) {
             address tokenAddress = account.tokens[i];
@@ -90,12 +136,11 @@ contract Noah {
             uint256 userBalance = token.balanceOf(_user);
             if (userBalance > 0) {
                 IERC20(tokenAddress).transfer(account.beneficiary, userBalance);
-                totalUsdcRecovered += userBalance;
             }
         }
         // Reset the deadline to 0 to allow for future re-initialization
         account.deadline = 0;
-        emit FloodTriggered(_user, account.beneficiary, totalUsdcRecovered);
+        emit FloodTriggered(_user, account.beneficiary);
     }
     
     /**

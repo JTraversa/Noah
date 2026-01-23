@@ -143,7 +143,7 @@ contract Noah {
     }
 
     /**
-     * @notice Triggers the flood process for a user, selling their tokens for USDC.
+     * @notice Triggers the flood process for a user
      * @param _users The address of the users whose assets are being recovered.
      * @param _tokens The address of the tokens to be recovered.
      */
