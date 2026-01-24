@@ -6,7 +6,7 @@ import Features from './components/Features';
 import HowItWorks from './components/HowItWorks';
 import Stats from './components/Stats';
 import Footer from './components/Footer';
-import About from './components/About';
+import AboutPage from './components/about/AboutPage';
 import AppPage from './components/app/AppPage';
 
 function HomePage() {
@@ -25,10 +25,10 @@ function HomePage() {
   );
 }
 
-function AboutPage() {
+function AboutPageWrapper() {
   return (
     <main className="relative z-10 flex-1 py-8 overflow-auto">
-      <About />
+      <AboutPage />
     </main>
   );
 }
@@ -59,7 +59,7 @@ function App() {
 
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/about" element={<AboutPage />} />
+        <Route path="/about" element={<AboutPageWrapper />} />
         <Route path="/app" element={<AppPageWrapper />} />
       </Routes>
 
