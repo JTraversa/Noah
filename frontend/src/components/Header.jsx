@@ -20,9 +20,12 @@ function Header() {
         >
           About
         </Link>
-        <button className="solid-btn px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-semibold text-indigo-600 shadow-lg shadow-indigo-400/45">
+        <Link
+          to="/app"
+          className="solid-btn px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-semibold text-indigo-600 shadow-lg shadow-indigo-400/45"
+        >
           Launch App
-        </button>
+        </Link>
       </nav>
     </header>
   );

@@ -1,0 +1,65 @@
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import CreateTab from './CreateTab';
+import ManageTab from './ManageTab';
+import ActivityTab from './ActivityTab';
+
+function AppPage() {
+  const [activeTab, setActiveTab] = useState('ark');
+
+  // Mock data - will be replaced with real wallet data later
+  const hasArk = false;
+
+  const tabs = [
+    { id: 'ark', label: hasArk ? 'Manage Ark' : 'Create Ark' },
+    { id: 'activity', label: 'Activity' },
+  ];
+
+  return (
+    <div className="flex flex-col gap-4 md:gap-6 max-w-2xl mx-auto w-full">
+      {/* Back button */}
+      <Link
+        to="/"
+        className="glass-btn self-start px-4 py-2 rounded-full text-xs md:text-sm font-medium text-slate-600 flex items-center gap-2"
+      >
+        <span>←</span> Home
+      </Link>
+
+      {/* App Header */}
+      <div className="glass rounded-2xl md:rounded-3xl p-4 md:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg md:text-xl font-bold text-slate-700">Your Ark</h2>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-500"></div>
+            <span className="text-xs text-slate-500">Connected</span>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 p-1 bg-slate-100/50 rounded-xl">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-all ${
+                activeTab === tab.id
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div className="glass rounded-2xl md:rounded-3xl p-4 md:p-6">
+        {activeTab === 'ark' && (hasArk ? <ManageTab /> : <CreateTab />)}
+        {activeTab === 'activity' && <ActivityTab />}
+      </div>
+    </div>
+  );
+}
+
+export default AppPage;

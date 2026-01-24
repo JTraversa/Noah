@@ -7,6 +7,7 @@ import HowItWorks from './components/HowItWorks';
 import Stats from './components/Stats';
 import Footer from './components/Footer';
 import About from './components/About';
+import AppPage from './components/app/AppPage';
 
 function HomePage() {
   return (
@@ -32,6 +33,14 @@ function AboutPage() {
   );
 }
 
+function AppPageWrapper() {
+  return (
+    <main className="relative z-10 flex-1 py-8 overflow-auto">
+      <AppPage />
+    </main>
+  );
+}
+
 function App() {
   const location = useLocation();
   const isHome = location.pathname === '/';
@@ -51,6 +60,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/app" element={<AppPageWrapper />} />
       </Routes>
 
       <Footer />
