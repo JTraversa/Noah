@@ -1,9 +1,12 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 const logoUrl = new URL('../assets/NoahLogoWordmark.png', import.meta.url);
 
 function Header() {
+  const location = useLocation();
+  const isApp = location.pathname === '/app';
+
   return (
     <header className="relative z-10 flex items-center justify-between">
       <Link to="/" className="ml-2 md:ml-4">
@@ -20,12 +23,16 @@ function Header() {
         >
           About
         </Link>
-        <Link
-          to="/app"
-          className="solid-btn px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-semibold text-indigo-600 shadow-lg shadow-indigo-400/45"
-        >
-          Launch App
-        </Link>
+        {isApp ? (
+          <div id="connect-button-slot" />
+        ) : (
+          <Link
+            to="/app"
+            className="solid-btn px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-semibold text-indigo-600 shadow-lg shadow-indigo-400/45"
+          >
+            Launch App
+          </Link>
+        )}
       </nav>
     </header>
   );

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import Header from './components/Header';
 import Hero from './components/Hero';
@@ -7,7 +7,9 @@ import HowItWorks from './components/HowItWorks';
 import Stats from './components/Stats';
 import Footer from './components/Footer';
 import AboutPage from './components/about/AboutPage';
-import AppPage from './components/app/AppPage';
+
+// Lazy load app section - wagmi only loads when user visits /app
+const AppWithWagmi = lazy(() => import('./components/app/AppWithWagmi'));
 
 function HomePage() {
   return (
@@ -33,10 +35,14 @@ function AboutPageWrapper() {
   );
 }
 
-function AppPageWrapper() {
+function AppLoadingFallback() {
   return (
     <main className="relative z-10 flex-1 py-8 overflow-auto">
-      <AppPage />
+      <div className="flex flex-col gap-4 md:gap-6 max-w-2xl mx-auto w-full">
+        <div className="glass rounded-2xl md:rounded-3xl p-8 text-center">
+          <div className="text-lg text-slate-500">Loading...</div>
+        </div>
+      </div>
     </main>
   );
 }
@@ -60,7 +66,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/about" element={<AboutPageWrapper />} />
-        <Route path="/app" element={<AppPageWrapper />} />
+        <Route path="/app" element={<Suspense fallback={<AppLoadingFallback />}><AppWithWagmi /></Suspense>} />
       </Routes>
 
       <Footer />
