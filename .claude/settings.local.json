@@ -20,7 +20,13 @@
       "Bash(npm.cmd install:*)",
       "Bash(echo:*)",
       "Bash(/c/Program Files/nodejs/node.exe /c/Program Files/nodejs/node_modules/npm/bin/npm-cli.js install)",
-      "Bash(/c/Program Files/nodejs/node.exe /c/Program Files/nodejs/node_modules/npm/bin/npm-cli.js run dev)"
+      "Bash(/c/Program Files/nodejs/node.exe /c/Program Files/nodejs/node_modules/npm/bin/npm-cli.js run dev)",
+      "Bash(forge build:*)",
+      "Bash(forge clean:*)",
+      "Bash(start \"Anvil\" cmd /c \"anvil --host 0.0.0.0\")",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(forge script:*)"
     ]
   }
 }
