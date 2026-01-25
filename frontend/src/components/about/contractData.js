@@ -55,9 +55,9 @@ export const contract = {
     },
     {
       name: 'updateDeadlineDuration',
-      desc: 'Updates the deadline duration for future resets.',
+      desc: 'Updates the deadline duration and immediately resets the deadline to current time plus the new duration.',
       params: [
-        { name: '_newDuration', type: 'uint256', desc: 'The new deadline duration in seconds.' },
+        { name: '_newDuration', type: 'uint256', desc: 'The new deadline duration in seconds (must be greater than zero).' },
       ]
     },
     {
@@ -72,6 +72,11 @@ export const contract = {
         { name: 'deadlineDuration', type: 'uint256', desc: 'The deadline duration in seconds.' },
         { name: 'tokens', type: 'address[]', desc: 'The array of token addresses.' },
       ]
+    },
+    {
+      name: 'destroyArk',
+      desc: 'Destroys the caller\'s Ark by setting the deadline to 0. This deactivates the dead man\'s switch and allows the user to create a new Ark afterward.',
+      params: []
     },
   ],
   events: [
@@ -123,6 +128,13 @@ export const contract = {
         { name: 'user', type: 'address indexed', desc: 'The address of the user who updated the duration.' },
         { name: 'newDuration', type: 'uint256', desc: 'The new duration in seconds.' },
         { name: 'newDeadline', type: 'uint256', desc: 'The recalculated deadline timestamp.' },
+      ]
+    },
+    {
+      name: 'ArkDestroyed',
+      desc: 'Emitted when a user destroys their Ark.',
+      params: [
+        { name: 'user', type: 'address indexed', desc: 'The address of the user who destroyed their Ark.' },
       ]
     },
   ]

@@ -73,6 +73,12 @@ contract Noah {
      */
     event DeadlineUpdated(address indexed user, uint256 newDuration, uint256 newDeadline);
 
+    /**
+     * @notice Emitted when an Ark is destroyed by the user.
+     * @param user The address of the user who destroyed their Ark.
+     */
+    event ArkDestroyed(address indexed user);
+
 
     constructor() {
     }
@@ -182,5 +188,15 @@ contract Noah {
         arks[msg.sender].deadlineDuration = _newDuration;
         arks[msg.sender].deadline = block.timestamp + _newDuration;
         emit DeadlineUpdated(msg.sender, _newDuration, arks[msg.sender].deadline);
+    }
+
+    /**
+     * @notice Destroys the caller's Ark by setting the deadline to 0.
+     * @dev This allows the user to create a new Ark after destruction.
+     */
+    function destroyArk() external {
+        require(arks[msg.sender].deadline != 0, "Ark not built");
+        arks[msg.sender].deadline = 0;
+        emit ArkDestroyed(msg.sender);
     }
 }

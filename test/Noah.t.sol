@@ -29,6 +29,7 @@ contract NoahTest is Test {
     event PassengersAdded(address indexed user, address[] newPassengers);
     event PassengerRemoved(address indexed user, address passenger);
     event DeadlineUpdated(address indexed user, uint256 newDuration, uint256 newDeadline);
+    event ArkDestroyed(address indexed user);
 
     function setUp() public {
         noah = new Noah();
@@ -420,6 +421,82 @@ contract NoahTest is Test {
 
         (, uint256 deadline,) = noah.getArk(user1, address(token1));
         assertEq(deadline, block.timestamp + newDuration);
+
+        vm.stopPrank();
+    }
+
+    // ===== destroyArk Tests =====
+
+    function test_DestroyArk_Success() public {
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(token1);
+
+        vm.startPrank(user1);
+        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
+
+        vm.expectEmit(true, false, false, true);
+        emit ArkDestroyed(user1);
+
+        noah.destroyArk();
+
+        (, uint256 deadline,,) = noah.getArk(user1);
+        assertEq(deadline, 0);
+
+        vm.stopPrank();
+    }
+
+    function test_DestroyArk_RevertWhen_ArkNotBuilt() public {
+        vm.prank(user1);
+        vm.expectRevert("Ark not built");
+        noah.destroyArk();
+    }
+
+    function test_DestroyArk_CanRebuildAfterDestroy() public {
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(token1);
+
+        vm.startPrank(user1);
+        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
+        noah.destroyArk();
+
+        // Should be able to build a new ark
+        noah.buildArk(beneficiary2, DEADLINE_DURATION * 2, tokens);
+
+        (address beneficiary, uint256 deadline, uint256 duration,) = noah.getArk(user1);
+        assertEq(beneficiary, beneficiary2);
+        assertGt(deadline, 0);
+        assertEq(duration, DEADLINE_DURATION * 2);
+
+        vm.stopPrank();
+    }
+
+    function test_DestroyArk_CannotPingAfterDestroy() public {
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(token1);
+
+        vm.startPrank(user1);
+        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
+        noah.destroyArk();
+
+        vm.expectRevert("Account not initialized");
+        noah.pingArk();
+
+        vm.stopPrank();
+    }
+
+    function test_DestroyArk_CannotAddPassengersAfterDestroy() public {
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(token1);
+
+        vm.startPrank(user1);
+        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
+        noah.destroyArk();
+
+        address[] memory newPassengers = new address[](1);
+        newPassengers[0] = address(token2);
+
+        vm.expectRevert("Ark not built");
+        noah.addPassengers(newPassengers);
 
         vm.stopPrank();
     }

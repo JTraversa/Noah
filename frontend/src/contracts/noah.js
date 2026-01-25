@@ -68,6 +68,13 @@ export const NOAH_ABI = [
     stateMutability: 'nonpayable',
   },
   {
+    type: 'function',
+    name: 'destroyArk',
+    inputs: [],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
     type: 'event',
     name: 'ArkBuilt',
     inputs: [
@@ -115,6 +122,13 @@ export const NOAH_ABI = [
       { name: 'user', type: 'address', indexed: true },
       { name: 'newDuration', type: 'uint256', indexed: false },
       { name: 'newDeadline', type: 'uint256', indexed: false },
+    ],
+  },
+  {
+    type: 'event',
+    name: 'ArkDestroyed',
+    inputs: [
+      { name: 'user', type: 'address', indexed: true },
     ],
   },
 ];
