@@ -12,7 +12,15 @@
       "WebFetch(domain:developers.zerion.io)",
       "WebFetch(domain:docs.moralis.com)",
       "Bash(powershell -Command \"\\(Get-Item ''C:\\\\Users\\\\Fractal - Springs\\\\Documents\\\\GitHub\\\\ETHNYC2025\\\\frontend\\\\src\\\\assets\\\\NoahLogoWordmark.png''\\).Length\")",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npx parcel index.html)",
+      "Bash(cd:*)",
+      "Bash(npm:*)",
+      "Bash(/c/Program Files/nodejs/npm.cmd install --prefix \"C:/Users/Fractal - Springs/Documents/GitHub/ETHNYC2025/frontend\")",
+      "Bash(npm.cmd install:*)",
+      "Bash(echo:*)",
+      "Bash(/c/Program Files/nodejs/node.exe /c/Program Files/nodejs/node_modules/npm/bin/npm-cli.js install)",
+      "Bash(/c/Program Files/nodejs/node.exe /c/Program Files/nodejs/node_modules/npm/bin/npm-cli.js run dev)"
     ]
   }
 }
