@@ -68,7 +68,7 @@ contract NoahTest is Test {
 
         noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
 
-        (address beneficiary, uint256 deadline, uint256 duration) = noah.getArk(user1, address(token1));
+        (address beneficiary, uint256 deadline, uint256 duration,) = noah.getArk(user1);
 
         assertEq(beneficiary, beneficiary1);
         assertEq(deadline, expectedDeadline);
@@ -127,8 +127,8 @@ contract NoahTest is Test {
         vm.prank(user2);
         noah.buildArk(beneficiary2, DEADLINE_DURATION * 2, tokens);
 
-        (address ben1,,) = noah.getArk(user1, address(token1));
-        (address ben2, uint256 deadline2, uint256 duration2) = noah.getArk(user2, address(token1));
+        (address ben1,,,) = noah.getArk(user1);
+        (address ben2, uint256 deadline2, uint256 duration2,) = noah.getArk(user2);
 
         assertEq(ben1, beneficiary1);
         assertEq(ben2, beneficiary2);
@@ -154,7 +154,7 @@ contract NoahTest is Test {
 
         noah.pingArk();
 
-        (, uint256 deadline,) = noah.getArk(user1, address(token1));
+        (, uint256 deadline,,) = noah.getArk(user1);
         assertEq(deadline, expectedNewDeadline);
 
         vm.stopPrank();
@@ -178,7 +178,7 @@ contract NoahTest is Test {
             noah.pingArk();
         }
 
-        (, uint256 deadline,) = noah.getArk(user1, address(token1));
+        (, uint256 deadline,,) = noah.getArk(user1);
         assertEq(deadline, block.timestamp + DEADLINE_DURATION);
 
         vm.stopPrank();
@@ -227,7 +227,7 @@ contract NoahTest is Test {
         vm.warp(block.timestamp + DEADLINE_DURATION + 1);
         noah.flood(user1);
 
-        (, uint256 deadline,) = noah.getArk(user1, address(token1));
+        (, uint256 deadline,,) = noah.getArk(user1);
         assertEq(deadline, 0);
     }
 
@@ -282,7 +282,7 @@ contract NoahTest is Test {
         vm.prank(user1);
         noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
 
-        (, uint256 deadline,) = noah.getArk(user1, address(token1));
+        (, uint256 deadline,,) = noah.getArk(user1);
         assertGt(deadline, 0);
     }
 
@@ -380,7 +380,7 @@ contract NoahTest is Test {
 
         noah.updateDeadlineDuration(newDuration);
 
-        (,uint256 deadline, uint256 duration) = noah.getArk(user1, address(token1));
+        (,uint256 deadline, uint256 duration,) = noah.getArk(user1);
         assertEq(duration, newDuration);
         assertEq(deadline, expectedDeadline);
 
@@ -419,7 +419,7 @@ contract NoahTest is Test {
         uint256 newDuration = 10 days;
         noah.updateDeadlineDuration(newDuration);
 
-        (, uint256 deadline,) = noah.getArk(user1, address(token1));
+        (, uint256 deadline,,) = noah.getArk(user1);
         assertEq(deadline, block.timestamp + newDuration);
 
         vm.stopPrank();
@@ -547,7 +547,7 @@ contract NoahTest is Test {
     }
 
     function test_GetArk_UninitializedAccount() public view {
-        (address beneficiary, uint256 deadline, uint256 duration) = noah.getArk(user1, address(token1));
+        (address beneficiary, uint256 deadline, uint256 duration,) = noah.getArk(user1);
 
         assertEq(beneficiary, address(0));
         assertEq(deadline, 0);
@@ -566,7 +566,7 @@ contract NoahTest is Test {
         vm.prank(user1);
         noah.buildArk(_beneficiary, _duration, tokens);
 
-        (address beneficiary, uint256 deadline, uint256 duration) = noah.getArk(user1, address(token1));
+        (address beneficiary, uint256 deadline, uint256 duration,) = noah.getArk(user1);
 
         assertEq(beneficiary, _beneficiary);
         assertEq(duration, _duration);
@@ -587,7 +587,7 @@ contract NoahTest is Test {
         vm.prank(user1);
         noah.pingArk();
 
-        (, uint256 deadline,) = noah.getArk(user1, address(token1));
+        (, uint256 deadline,,) = noah.getArk(user1);
         assertEq(deadline, block.timestamp + DEADLINE_DURATION);
     }
 
@@ -603,7 +603,7 @@ contract NoahTest is Test {
         vm.prank(user1);
         noah.updateDeadlineDuration(_newDuration);
 
-        (,, uint256 duration) = noah.getArk(user1, address(token1));
+        (,, uint256 duration,) = noah.getArk(user1);
         assertEq(duration, _newDuration);
     }
 }

@@ -30,7 +30,8 @@
       "Bash(npx vite build)",
       "Bash(cast balance:*)",
       "Bash(taskkill:*)",
-      "Bash(cast send:*)"
+      "Bash(cast send:*)",
+      "Bash(forge test:*)"
     ]
   }
 }
