@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
+import { formatUnits } from 'viem';
+import { NOAH_ADDRESS, NOAH_ABI, MOCK_USDC_ADDRESS, ERC20_ABI } from '../../contracts/noah';
 
 const durationOptions = [
   { value: 604800, label: '1 Week' },
@@ -8,38 +11,128 @@ const durationOptions = [
   { value: 63072000, label: '2 Years' },
 ];
 
-// Mock token list - will be replaced with actual wallet tokens
-const mockTokens = [
-  { address: '0x1234...5678', symbol: 'WETH', balance: '2.45', usdValue: 8100.50 },
-  { address: '0x2345...6789', symbol: 'USDC', balance: '1,500.00', usdValue: 1500.00 },
-  { address: '0x3456...7890', symbol: 'ARB', balance: '850.00', usdValue: 425.00 },
-  { address: '0x4567...8901', symbol: 'GMX', balance: '12.5', usdValue: 562.50 },
-  { address: '0x5678...9012', symbol: 'LINK', balance: '0.05', usdValue: 0.75 },
-  { address: '0x6789...0123', symbol: 'UNI', balance: '0.001', usdValue: 0.01 },
-];
-
 function CreateTab() {
+  const { address, isConnected } = useAccount();
   const [beneficiary, setBeneficiary] = useState('');
   const [duration, setDuration] = useState(2592000);
+  const [isCustomDuration, setIsCustomDuration] = useState(false);
+  const [customMinutes, setCustomMinutes] = useState('');
   const [selectedTokens, setSelectedTokens] = useState([]);
+  const [tokens, setTokens] = useState([]);
 
-  const toggleToken = (address) => {
+  // Read USDC balance
+  const { data: usdcBalance } = useReadContract({
+    address: MOCK_USDC_ADDRESS,
+    abi: ERC20_ABI,
+    functionName: 'balanceOf',
+    args: [address],
+    enabled: !!address,
+  });
+
+  // Check if user already has an ark
+  const { data: existingArk } = useReadContract({
+    address: NOAH_ADDRESS,
+    abi: NOAH_ABI,
+    functionName: 'getArk',
+    args: [address],
+    enabled: !!address,
+  });
+
+  const hasExistingArk = existingArk && existingArk[1] > 0n; // deadline > 0
+
+  // Build token list from wallet
+  useEffect(() => {
+    if (address && usdcBalance !== undefined) {
+      const balance = formatUnits(usdcBalance, 6);
+      const usdValue = parseFloat(balance);
+      setTokens([
+        {
+          address: MOCK_USDC_ADDRESS,
+          symbol: 'USDC',
+          balance: parseFloat(balance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          usdValue,
+        },
+      ]);
+    }
+  }, [address, usdcBalance]);
+
+  // Contract write
+  const { data: hash, writeContract, isPending, error } = useWriteContract();
+
+  // Wait for transaction
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+    hash,
+  });
+
+  const toggleToken = (addr) => {
     setSelectedTokens((prev) =>
-      prev.includes(address)
-        ? prev.filter((a) => a !== address)
-        : [...prev, address]
+      prev.includes(addr)
+        ? prev.filter((a) => a !== addr)
+        : [...prev, addr]
     );
   };
 
   const selectAllTokens = () => {
-    const eligibleTokens = mockTokens.filter((t) => t.usdValue > 1);
+    const eligibleTokens = tokens.filter((t) => t.usdValue > 1);
     setSelectedTokens(eligibleTokens.map((t) => t.address));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Creating Ark:', { beneficiary, duration, selectedTokens });
+    if (!beneficiary || selectedTokens.length === 0) return;
+
+    writeContract({
+      address: NOAH_ADDRESS,
+      abi: NOAH_ABI,
+      functionName: 'buildArk',
+      args: [beneficiary, BigInt(duration), selectedTokens],
+    });
   };
+
+  if (!isConnected) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-4xl mb-3">🔗</div>
+        <h3 className="text-base md:text-lg font-semibold text-slate-700 mb-2">
+          Connect Your Wallet
+        </h3>
+        <p className="text-sm text-slate-500">
+          Connect your wallet to create an Ark.
+        </p>
+      </div>
+    );
+  }
+
+  if (hasExistingArk) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-4xl mb-3">🚢</div>
+        <h3 className="text-base md:text-lg font-semibold text-slate-700 mb-2">
+          Ark Already Exists
+        </h3>
+        <p className="text-sm text-slate-500">
+          You already have an active Ark. Go to the Manage tab to view or modify it.
+        </p>
+      </div>
+    );
+  }
+
+  if (isSuccess) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-4xl mb-3">✅</div>
+        <h3 className="text-base md:text-lg font-semibold text-green-600 mb-2">
+          Ark Created Successfully!
+        </h3>
+        <p className="text-sm text-slate-500 mb-4">
+          Your dead man's switch is now active.
+        </p>
+        <p className="text-xs text-slate-400 font-mono break-all">
+          Tx: {hash}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -65,14 +158,18 @@ function CreateTab() {
         <label className="block text-sm font-medium text-slate-700 mb-2">
           Deadline Duration
         </label>
-        <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
           {durationOptions.map((opt) => (
             <button
               key={opt.value}
               type="button"
-              onClick={() => setDuration(opt.value)}
+              onClick={() => {
+                setDuration(opt.value);
+                setIsCustomDuration(false);
+                setCustomMinutes('');
+              }}
               className={`px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-all ${
-                duration === opt.value
+                duration === opt.value && !isCustomDuration
                   ? 'bg-indigo-500 text-white'
                   : 'bg-slate-50/50 text-slate-600 hover:bg-slate-100'
               }`}
@@ -80,9 +177,42 @@ function CreateTab() {
               {opt.label}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => setIsCustomDuration(true)}
+            className={`px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-all ${
+              isCustomDuration
+                ? 'bg-indigo-500 text-white'
+                : 'bg-slate-50/50 text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            Custom
+          </button>
         </div>
+        {isCustomDuration && (
+          <div className="mt-3 flex items-center gap-2">
+            <input
+              type="number"
+              min="1"
+              value={customMinutes}
+              onChange={(e) => {
+                setCustomMinutes(e.target.value);
+                const mins = parseInt(e.target.value, 10);
+                if (mins > 0) {
+                  setDuration(mins * 60);
+                }
+              }}
+              placeholder="Enter minutes"
+              className="flex-1 px-4 py-2 rounded-xl bg-slate-50/50 border border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm"
+            />
+            <span className="text-sm text-slate-500">minutes</span>
+          </div>
+        )}
         <p className="text-xs text-slate-400 mt-1">
           How long before your Ark can be triggered after your last ping
+          {isCustomDuration && customMinutes && parseInt(customMinutes, 10) > 0 && (
+            <span className="text-indigo-500"> ({Math.floor(duration / 60)} min = {duration} seconds)</span>
+          )}
         </p>
       </div>
 
@@ -102,56 +232,75 @@ function CreateTab() {
           </button>
         </div>
         <div className="space-y-2 max-h-64 overflow-y-auto">
-          {mockTokens.map((token) => (
-            <button
-              key={token.address}
-              type="button"
-              onClick={() => toggleToken(token.address)}
-              className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
-                selectedTokens.includes(token.address)
-                  ? 'bg-indigo-50 border-2 border-indigo-400'
-                  : 'bg-slate-50/50 border-2 border-transparent hover:bg-slate-100'
-              } ${token.usdValue <= 1 ? 'opacity-50' : ''}`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
-                  {token.symbol.charAt(0)}
-                </div>
-                <div className="text-left">
-                  <div className="text-sm font-medium text-slate-700">{token.symbol}</div>
-                  <div className="text-xs text-slate-400 font-mono">{token.address}</div>
-                </div>
-              </div>
-              <div className="text-right flex items-center gap-3">
-                <div>
-                  <div className="text-sm font-medium text-slate-700">{token.balance}</div>
-                  <div className="text-xs text-slate-400">${token.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                </div>
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+          {tokens.length === 0 ? (
+            <div className="text-center py-4 text-sm text-slate-400">
+              Loading tokens...
+            </div>
+          ) : (
+            tokens.map((token) => (
+              <button
+                key={token.address}
+                type="button"
+                onClick={() => toggleToken(token.address)}
+                className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
                   selectedTokens.includes(token.address)
-                    ? 'bg-indigo-500 border-indigo-500'
-                    : 'border-slate-300'
-                }`}>
-                  {selectedTokens.includes(token.address) && (
-                    <span className="text-white text-xs">✓</span>
-                  )}
+                    ? 'bg-indigo-50 border-2 border-indigo-400'
+                    : 'bg-slate-50/50 border-2 border-transparent hover:bg-slate-100'
+                } ${token.usdValue <= 1 ? 'opacity-50' : ''}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
+                    {token.symbol.charAt(0)}
+                  </div>
+                  <div className="text-left">
+                    <div className="text-sm font-medium text-slate-700">{token.symbol}</div>
+                    <div className="text-xs text-slate-400 font-mono">
+                      {token.address.slice(0, 6)}...{token.address.slice(-4)}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
+                <div className="text-right flex items-center gap-3">
+                  <div>
+                    <div className="text-sm font-medium text-slate-700">{token.balance}</div>
+                    <div className="text-xs text-slate-400">
+                      ${token.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    selectedTokens.includes(token.address)
+                      ? 'bg-indigo-500 border-indigo-500'
+                      : 'border-slate-300'
+                  }`}>
+                    {selectedTokens.includes(token.address) && (
+                      <span className="text-white text-xs">✓</span>
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))
+          )}
         </div>
         <p className="text-xs text-slate-400 mt-1">
           {selectedTokens.length} token{selectedTokens.length !== 1 ? 's' : ''} selected
         </p>
       </div>
 
+      {/* Error Display */}
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+          <p className="text-sm text-red-600">
+            Error: {error.shortMessage || error.message}
+          </p>
+        </div>
+      )}
+
       {/* Submit Button */}
       <button
         type="submit"
-        disabled={!beneficiary || selectedTokens.length === 0}
+        disabled={!beneficiary || selectedTokens.length === 0 || isPending || isConfirming}
         className="w-full solid-btn px-6 py-4 rounded-2xl font-semibold text-indigo-600 text-base shadow-lg shadow-indigo-400/45 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Build Your Ark
+        {isPending ? 'Confirm in Wallet...' : isConfirming ? 'Creating Ark...' : 'Build Your Ark'}
       </button>
     </form>
   );

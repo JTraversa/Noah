@@ -1,19 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { formatUnits } from 'viem';
+import { NOAH_ADDRESS, NOAH_ABI, ERC20_ABI } from '../../contracts/noah';
 
-// Mock Ark data - will be replaced with real contract data
-const mockArk = {
-  beneficiary: '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD45',
-  deadline: Date.now() + 86400 * 30 * 1000, // 30 days from now
-  deadlineDuration: 2592000, // 30 days in seconds
-  tokens: [
-    { address: '0x1234...5678', symbol: 'WETH', balance: '2.45' },
-    { address: '0x2345...6789', symbol: 'USDC', balance: '1,500.00' },
-    { address: '0x3456...7890', symbol: 'ARB', balance: '850.00' },
-  ],
-};
-
-function formatTimeRemaining(deadline) {
+function formatTimeRemaining(deadlineTimestamp) {
   const now = Date.now();
+  const deadline = Number(deadlineTimestamp) * 1000; // Convert from seconds to ms
   const diff = deadline - now;
 
   if (diff <= 0) return { text: 'Expired', urgent: true };
@@ -32,7 +24,8 @@ function formatTimeRemaining(deadline) {
 }
 
 function formatDuration(seconds) {
-  const days = Math.floor(seconds / 86400);
+  const secs = Number(seconds);
+  const days = Math.floor(secs / 86400);
   if (days >= 365) return `${Math.floor(days / 365)} year${days >= 730 ? 's' : ''}`;
   if (days >= 30) return `${Math.floor(days / 30)} month${days >= 60 ? 's' : ''}`;
   if (days >= 7) return `${Math.floor(days / 7)} week${days >= 14 ? 's' : ''}`;
@@ -40,21 +33,74 @@ function formatDuration(seconds) {
 }
 
 function ManageTab() {
-  const [ark] = useState(mockArk);
-  const [isPinging, setIsPinging] = useState(false);
+  const { address, isConnected } = useAccount();
+  const [tokenBalances, setTokenBalances] = useState({});
 
-  const timeRemaining = formatTimeRemaining(ark.deadline);
+  // Read ark data from contract
+  const { data: arkData, isLoading, refetch } = useReadContract({
+    address: NOAH_ADDRESS,
+    abi: NOAH_ABI,
+    functionName: 'getArk',
+    args: [address],
+    enabled: !!address,
+  });
+
+  // Parse ark data
+  const ark = arkData ? {
+    beneficiary: arkData[0],
+    deadline: arkData[1],
+    deadlineDuration: arkData[2],
+    tokens: arkData[3],
+  } : null;
+
+  const hasArk = ark && ark.deadline > 0n;
+
+  // Ping contract write
+  const { data: pingHash, writeContract: writePing, isPending: isPinging } = useWriteContract();
+  const { isLoading: isPingConfirming, isSuccess: isPingSuccess } = useWaitForTransactionReceipt({
+    hash: pingHash,
+  });
+
+  // Refetch ark data after successful ping
+  useEffect(() => {
+    if (isPingSuccess) {
+      refetch();
+    }
+  }, [isPingSuccess, refetch]);
 
   const handlePing = () => {
-    setIsPinging(true);
-    // Simulate ping - will be replaced with actual contract call
-    setTimeout(() => {
-      setIsPinging(false);
-      console.log('Ark pinged!');
-    }, 1500);
+    writePing({
+      address: NOAH_ADDRESS,
+      abi: NOAH_ABI,
+      functionName: 'pingArk',
+      args: [],
+    });
   };
 
-  if (!ark) {
+  if (!isConnected) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-4xl mb-3">🔗</div>
+        <h3 className="text-base md:text-lg font-semibold text-slate-700 mb-2">
+          Connect Your Wallet
+        </h3>
+        <p className="text-sm text-slate-500">
+          Connect your wallet to manage your Ark.
+        </p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-4xl mb-3 animate-pulse">🚢</div>
+        <p className="text-sm text-slate-500">Loading your Ark...</p>
+      </div>
+    );
+  }
+
+  if (!hasArk) {
     return (
       <div className="text-center py-8">
         <div className="text-4xl mb-3">🏗️</div>
@@ -67,6 +113,8 @@ function ManageTab() {
       </div>
     );
   }
+
+  const timeRemaining = formatTimeRemaining(ark.deadline);
 
   return (
     <div className="space-y-6">
@@ -81,16 +129,21 @@ function ManageTab() {
           </div>
           <button
             onClick={handlePing}
-            disabled={isPinging}
+            disabled={isPinging || isPingConfirming}
             className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all ${
               timeRemaining.urgent
                 ? 'bg-red-500 hover:bg-red-600 text-white'
                 : 'bg-green-500 hover:bg-green-600 text-white'
             } disabled:opacity-50`}
           >
-            {isPinging ? 'Pinging...' : 'Ping Ark'}
+            {isPinging ? 'Confirm in Wallet...' : isPingConfirming ? 'Pinging...' : 'Ping Ark'}
           </button>
         </div>
+        {isPingSuccess && (
+          <div className="mt-2 text-xs text-green-600">
+            Ark pinged successfully! Deadline extended.
+          </div>
+        )}
       </div>
 
       {/* Ark Details */}
@@ -113,34 +166,38 @@ function ManageTab() {
       {/* Protected Tokens */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-slate-700">Protected Tokens</h3>
+          <h3 className="text-sm font-semibold text-slate-700">Protected Tokens ({ark.tokens.length})</h3>
           <button className="text-xs text-indigo-500 hover:text-indigo-600">
             + Add Token
           </button>
         </div>
         <div className="space-y-2">
-          {ark.tokens.map((token) => (
-            <div
-              key={token.address}
-              className="flex items-center justify-between p-3 bg-slate-50/50 rounded-xl"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
-                  {token.symbol.charAt(0)}
+          {ark.tokens.length === 0 ? (
+            <div className="text-center py-4 text-sm text-slate-400">
+              No tokens protected yet.
+            </div>
+          ) : (
+            ark.tokens.map((tokenAddress) => (
+              <div
+                key={tokenAddress}
+                className="flex items-center justify-between p-3 bg-slate-50/50 rounded-xl"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
+                    T
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-400 font-mono">
+                      {tokenAddress.slice(0, 6)}...{tokenAddress.slice(-4)}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-sm font-medium text-slate-700">{token.symbol}</div>
-                  <div className="text-xs text-slate-400 font-mono">{token.address}</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="text-sm font-medium text-slate-700">{token.balance}</div>
                 <button className="text-slate-400 hover:text-red-500 transition-colors">
                   <span className="text-xs">✕</span>
                 </button>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 

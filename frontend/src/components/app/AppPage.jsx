@@ -1,14 +1,26 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAccount, useReadContract } from 'wagmi';
+import { NOAH_ADDRESS, NOAH_ABI } from '../../contracts/noah';
 import CreateTab from './CreateTab';
 import ManageTab from './ManageTab';
 import ActivityTab from './ActivityTab';
 
 function AppPage() {
   const [activeTab, setActiveTab] = useState('ark');
+  const { address } = useAccount();
 
-  // Mock data - will be replaced with real wallet data later
-  const hasArk = false;
+  // Read ark data from contract
+  const { data: arkData } = useReadContract({
+    address: NOAH_ADDRESS,
+    abi: NOAH_ABI,
+    functionName: 'getArk',
+    args: [address],
+    enabled: !!address,
+  });
+
+  // Check if ark exists (deadline > 0)
+  const hasArk = arkData && arkData[1] > 0n;
 
   const tabs = [
     { id: 'ark', label: hasArk ? 'Manage Ark' : 'Create Ark' },

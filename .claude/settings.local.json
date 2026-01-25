@@ -26,7 +26,11 @@
       "Bash(start \"Anvil\" cmd /c \"anvil --host 0.0.0.0\")",
       "Bash(netstat:*)",
       "Bash(findstr:*)",
-      "Bash(forge script:*)"
+      "Bash(forge script:*)",
+      "Bash(npx vite build)",
+      "Bash(cast balance:*)",
+      "Bash(taskkill:*)",
+      "Bash(cast send:*)"
     ]
   }
 }
