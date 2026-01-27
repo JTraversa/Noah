@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useChainId } from 'wagmi';
-import { formatUnits } from 'viem';
+import { useWriteContracts, useCallsStatus, useCapabilities } from 'wagmi/experimental';
+import { formatUnits, maxUint256 } from 'viem';
 import { NOAH_ADDRESS, NOAH_ABI, MOCK_USDC_ADDRESS, ERC20_ABI } from '../../contracts/noah';
 import { refreshActivity } from './ActivityTab';
 
@@ -51,6 +52,13 @@ function ManageTab() {
   const [showDestroyPendingModal, setShowDestroyPendingModal] = useState(false);
   const [destroyConfirmedOnChain, setDestroyConfirmedOnChain] = useState(false);
 
+  // Approval state for adding tokens
+  const [tokenAllowances, setTokenAllowances] = useState({});
+  const [isCheckingAllowances, setIsCheckingAllowances] = useState(false);
+  const [isApprovingSequentially, setIsApprovingSequentially] = useState(false);
+  const [currentApprovalIndex, setCurrentApprovalIndex] = useState(0);
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+
   // Read ark data from contract
   const { data: arkData, isLoading, refetch } = useReadContract({
     address: NOAH_ADDRESS,
@@ -90,9 +98,48 @@ function ManageTab() {
   });
 
   // Add passengers contract write
-  const { data: addHash, writeContract: writeAdd, isPending: isAdding } = useWriteContract();
+  const { data: addHash, writeContract: writeAdd, isPending: isAdding, error: addError, reset: resetAdd } = useWriteContract();
   const { isLoading: isAddConfirming, isSuccess: isAddSuccess } = useWaitForTransactionReceipt({
     hash: addHash,
+  });
+
+  // Check wallet capabilities (EIP-5792 support)
+  const { data: capabilities } = useCapabilities();
+
+  // Check if wallet supports atomic batching
+  const supportsBatching = useMemo(() => {
+    if (!capabilities || !chainId) return false;
+    const chainCaps = capabilities[chainId];
+    return chainCaps?.atomicBatch?.supported === true;
+  }, [capabilities, chainId]);
+
+  // Batched writes for approvals + add tokens (EIP-5792)
+  const {
+    data: batchId,
+    writeContracts,
+    isPending: isBatchPending,
+    error: batchError,
+  } = useWriteContracts();
+
+  // Check batch status
+  const { data: callsStatus } = useCallsStatus({
+    id: batchId,
+    query: { enabled: !!batchId, refetchInterval: 1000 },
+  });
+
+  const isBatchConfirming = callsStatus?.status === 'PENDING';
+  const isBatchSuccess = callsStatus?.status === 'CONFIRMED';
+
+  // Sequential approval write
+  const {
+    data: approvalHash,
+    writeContract: writeApproval,
+    isPending: isApprovalPending,
+    error: approvalError,
+    reset: resetApproval
+  } = useWriteContract();
+  const { isLoading: isApprovalConfirming, isSuccess: isApprovalSuccess } = useWaitForTransactionReceipt({
+    hash: approvalHash,
   });
 
   // Destroy ark contract write
@@ -110,6 +157,140 @@ function ManageTab() {
     args: [address],
     enabled: !!address,
   });
+
+  // Check allowance for a token
+  const checkAllowance = useCallback(async (tokenAddress) => {
+    try {
+      const allowance = await publicClient.readContract({
+        address: tokenAddress,
+        abi: ERC20_ABI,
+        functionName: 'allowance',
+        args: [address, NOAH_ADDRESS],
+      });
+      return allowance > 0n;
+    } catch (err) {
+      console.error('Error checking allowance:', err);
+      return false;
+    }
+  }, [publicClient, address]);
+
+  // Check approvals for selected tokens to add
+  const checkApprovalsForSelectedTokens = useCallback(async () => {
+    if (!address || selectedTokensToAdd.length === 0) {
+      setTokenAllowances({});
+      return;
+    }
+
+    setIsCheckingAllowances(true);
+    const allowances = {};
+
+    for (const tokenAddr of selectedTokensToAdd) {
+      allowances[tokenAddr] = await checkAllowance(tokenAddr);
+    }
+
+    setTokenAllowances(allowances);
+    setIsCheckingAllowances(false);
+  }, [address, selectedTokensToAdd, checkAllowance]);
+
+  // Check approvals when selected tokens change or modal opens
+  useEffect(() => {
+    if (showAddTokenModal) {
+      checkApprovalsForSelectedTokens();
+    }
+  }, [selectedTokensToAdd, showAddTokenModal, checkApprovalsForSelectedTokens]);
+
+  // Re-check allowances after batch success
+  useEffect(() => {
+    if (isBatchSuccess) {
+      checkApprovalsForSelectedTokens();
+      refetch();
+    }
+  }, [isBatchSuccess, checkApprovalsForSelectedTokens, refetch]);
+
+  // Get tokens that need approval
+  const tokensNeedingApproval = selectedTokensToAdd.filter(addr => !tokenAllowances[addr]);
+
+  // Check if all selected tokens are approved
+  const allSelectedTokensApproved = selectedTokensToAdd.length > 0 &&
+    selectedTokensToAdd.every(addr => tokenAllowances[addr] === true);
+
+  // Batched approve and add tokens (for smart wallets)
+  const handleBatchedApproveAndAdd = () => {
+    const contracts = [];
+
+    // Add approval calls for tokens that need it
+    for (const tokenAddr of tokensNeedingApproval) {
+      contracts.push({
+        address: tokenAddr,
+        abi: ERC20_ABI,
+        functionName: 'approve',
+        args: [NOAH_ADDRESS, maxUint256],
+      });
+    }
+
+    // Add the addPassengers call
+    contracts.push({
+      address: NOAH_ADDRESS,
+      abi: NOAH_ABI,
+      functionName: 'addPassengers',
+      args: [selectedTokensToAdd],
+    });
+
+    writeContracts({ contracts });
+  };
+
+  // Sequential approval flow (for EOA wallets)
+  const startSequentialApproval = () => {
+    if (tokensNeedingApproval.length === 0) return;
+    setIsApprovingSequentially(true);
+    setCurrentApprovalIndex(0);
+    setShowApprovalModal(true);
+    // Start first approval
+    writeApproval({
+      address: tokensNeedingApproval[0],
+      abi: ERC20_ABI,
+      functionName: 'approve',
+      args: [NOAH_ADDRESS, maxUint256],
+    });
+  };
+
+  // Handle sequential approval success - move to next or finish
+  useEffect(() => {
+    if (!isApprovingSequentially || !isApprovalSuccess) return;
+
+    const approveNext = async () => {
+      // Update allowance for the token we just approved
+      const justApproved = tokensNeedingApproval[currentApprovalIndex];
+      if (justApproved) {
+        setTokenAllowances(prev => ({ ...prev, [justApproved]: true }));
+      }
+
+      const nextIndex = currentApprovalIndex + 1;
+
+      if (nextIndex < tokensNeedingApproval.length) {
+        // More tokens to approve
+        setCurrentApprovalIndex(nextIndex);
+        resetApproval();
+        setTimeout(() => {
+          writeApproval({
+            address: tokensNeedingApproval[nextIndex],
+            abi: ERC20_ABI,
+            functionName: 'approve',
+            args: [NOAH_ADDRESS, maxUint256],
+          });
+        }, 500);
+      } else {
+        // All approvals done
+        setShowApprovalModal(false);
+        setIsApprovingSequentially(false);
+        setCurrentApprovalIndex(0);
+        resetApproval();
+        await checkApprovalsForSelectedTokens();
+      }
+    };
+
+    approveNext();
+  }, [isApprovalSuccess, isApprovingSequentially]);
 
   // Build available tokens list (tokens not already in ark)
   const availableTokens = React.useMemo(() => {
@@ -223,7 +404,18 @@ function ManageTab() {
   };
 
   const handleAddTokens = () => {
-    if (selectedTokensToAdd.length > 0) {
+    if (selectedTokensToAdd.length === 0) return;
+
+    if (tokensNeedingApproval.length > 0) {
+      if (supportsBatching) {
+        // Smart wallet - batch approvals + add in one tx
+        handleBatchedApproveAndAdd();
+      } else {
+        // EOA wallet - sequential approvals first
+        startSequentialApproval();
+      }
+    } else {
+      // All tokens approved, just add them
       writeAdd({
         address: NOAH_ADDRESS,
         abi: NOAH_ABI,
@@ -541,6 +733,7 @@ function ManageTab() {
               setCustomTokens([]);
               setCustomTokenAddress('');
               setCustomTokenError('');
+              setTokenAllowances({});
             }}
           />
           <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 max-h-[80vh] overflow-y-auto">
@@ -553,6 +746,7 @@ function ManageTab() {
                   setCustomTokens([]);
                   setCustomTokenAddress('');
                   setCustomTokenError('');
+                  setTokenAllowances({});
                 }}
                 className="text-slate-400 hover:text-slate-600"
               >
@@ -591,6 +785,22 @@ function ManageTab() {
                     <div className="text-sm text-slate-600">
                       {parseFloat(token.balance).toLocaleString('en-US', { maximumFractionDigits: 2 })}
                     </div>
+                    {selectedTokensToAdd.includes(token.address) && (
+                      <div className={`text-xs px-2 py-0.5 rounded-full ${
+                        approvalStates[token.address] === ApprovalState.APPROVED
+                          ? 'bg-green-100 text-green-600'
+                          : approvalStates[token.address] === ApprovalState.CHECKING
+                          ? 'bg-slate-100 text-slate-500'
+                          : approvalStates[token.address] === ApprovalState.PENDING
+                          ? 'bg-yellow-100 text-yellow-600'
+                          : 'bg-orange-100 text-orange-600'
+                      }`}>
+                        {approvalStates[token.address] === ApprovalState.APPROVED ? '✓' :
+                         approvalStates[token.address] === ApprovalState.CHECKING ? '...' :
+                         approvalStates[token.address] === ApprovalState.PENDING ? '...' :
+                         '!'}
+                      </div>
+                    )}
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                       selectedTokensToAdd.includes(token.address)
                         ? 'bg-indigo-500 border-indigo-500'
@@ -683,13 +893,115 @@ function ManageTab() {
                 )}
               </div>
             </div>
+            {/* Approval section */}
+            {selectedTokensToAdd.length > 0 && tokensNeedingApproval.length > 0 && !isCheckingAllowances && (
+              <div className="p-3 bg-orange-50 border border-orange-200 rounded-xl mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-orange-700">
+                      {tokensNeedingApproval.length} token{tokensNeedingApproval.length !== 1 ? 's' : ''} need approval
+                    </p>
+                    <p className="text-xs text-orange-600 mt-0.5">
+                      {supportsBatching
+                        ? 'All approvals will be bundled into one transaction'
+                        : 'Each token will need a separate approval'}
+                    </p>
+                  </div>
+                  {supportsBatching && (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                      ⚡ Batched
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
             <button
               onClick={handleAddTokens}
-              disabled={selectedTokensToAdd.length === 0 || isAdding || isAddConfirming}
+              disabled={selectedTokensToAdd.length === 0 || isAdding || isAddConfirming || isBatchPending || isBatchConfirming || isApprovingSequentially}
               className="w-full px-4 py-3 rounded-xl bg-indigo-500 text-white font-medium hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              {isAdding ? 'Confirm in Wallet...' : isAddConfirming ? 'Adding...' : `Add ${selectedTokensToAdd.length} Token${selectedTokensToAdd.length !== 1 ? 's' : ''}`}
+              {isAdding || isBatchPending ? 'Confirm in Wallet...' :
+               isAddConfirming || isBatchConfirming ? 'Adding...' :
+               tokensNeedingApproval.length > 0
+                 ? (supportsBatching ? `Approve & Add (${tokensNeedingApproval.length + 1} txs bundled)` : `Approve & Add ${selectedTokensToAdd.length} Token${selectedTokensToAdd.length !== 1 ? 's' : ''}`)
+                 : `Add ${selectedTokensToAdd.length} Token${selectedTokensToAdd.length !== 1 ? 's' : ''}`}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Sequential Approval Progress Modal */}
+      {showApprovalModal && isApprovingSequentially && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" />
+          <div className="relative bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+            <div className="text-center">
+              <div className="text-4xl mb-4">🔐</div>
+              <h3 className="text-lg font-semibold text-slate-700 mb-2">
+                Approving Tokens ({currentApprovalIndex + 1}/{tokensNeedingApproval.length})
+              </h3>
+              <p className="text-sm text-slate-500 mb-4">
+                Approve Noah to transfer your tokens when the flood triggers
+              </p>
+
+              {/* Token approval list */}
+              <div className="space-y-2 mb-4">
+                {tokensNeedingApproval.map((addr, idx) => {
+                  const token = [...availableTokens, ...customTokens].find(t => t.address === addr);
+                  const isCompleted = idx < currentApprovalIndex || tokenAllowances[addr];
+                  const isCurrent = idx === currentApprovalIndex;
+                  return (
+                    <div key={addr} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
+                      <span className="text-sm font-medium text-slate-700">
+                        {token?.symbol || addr.slice(0, 8)}
+                      </span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        isCompleted ? 'bg-green-100 text-green-600' :
+                        isCurrent ? 'bg-yellow-100 text-yellow-600 animate-pulse' :
+                        'bg-slate-200 text-slate-500'
+                      }`}>
+                        {isCompleted ? '✓ Done' :
+                         isCurrent ? (isApprovalPending ? 'Confirm...' : isApprovalConfirming ? 'Confirming...' : 'Approving...') :
+                         'Waiting'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {(isApprovalPending || isApprovalConfirming) && (
+                <div className="flex items-center justify-center gap-2 text-sm text-indigo-600 bg-indigo-50 rounded-lg p-3">
+                  <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span>{isApprovalPending ? 'Confirm in wallet...' : 'Waiting for confirmation...'}</span>
+                </div>
+              )}
+
+              {approvalError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg mt-3">
+                  <p className="text-xs text-red-600">
+                    {approvalError.shortMessage || approvalError.message}
+                  </p>
+                  <button
+                    onClick={() => {
+                      resetApproval();
+                      writeApproval({
+                        address: tokensNeedingApproval[currentApprovalIndex],
+                        abi: ERC20_ABI,
+                        functionName: 'approve',
+                        args: [NOAH_ADDRESS, maxUint256],
+                      });
+                    }}
+                    className="mt-2 text-xs text-red-600 underline"
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
