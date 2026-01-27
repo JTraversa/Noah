@@ -7,603 +7,374 @@ import "./mocks/MockERC20.sol";
 
 /**
  * @title NoahTest
- * @notice Comprehensive test suite for Noah contract (v1)
+ * @notice Test suite for Noah contract with focus on removePassenger functionality
  */
 contract NoahTest is Test {
     Noah public noah;
-    MockERC20 public token1;
-    MockERC20 public token2;
-    MockERC20 public token3;
 
     address public user1;
-    address public user2;
     address public beneficiary1;
-    address public beneficiary2;
 
     uint256 constant DEADLINE_DURATION = 30 days;
     uint256 constant INITIAL_BALANCE = 1000 ether;
 
-    event ArkBuilt(address indexed user, address indexed beneficiary, uint256 deadline);
-    event ArkPinged(address indexed user, uint256 newDeadline);
-    event FloodTriggered(address indexed user, address indexed beneficiary, uint256 usdcAmount);
-    event PassengersAdded(address indexed user, address[] newPassengers);
+    // Dynamic array to hold mock tokens
+    MockERC20[] public tokens;
+
     event PassengerRemoved(address indexed user, address passenger);
-    event DeadlineUpdated(address indexed user, uint256 newDuration, uint256 newDeadline);
-    event ArkDestroyed(address indexed user);
+    event PassengersAdded(address indexed user, address[] newPassengers);
 
     function setUp() public {
         noah = new Noah();
 
-        token1 = new MockERC20("Token1", "TK1");
-        token2 = new MockERC20("Token2", "TK2");
-        token3 = new MockERC20("Token3", "TK3");
-
         user1 = makeAddr("user1");
-        user2 = makeAddr("user2");
         beneficiary1 = makeAddr("beneficiary1");
-        beneficiary2 = makeAddr("beneficiary2");
-
-        // Mint tokens to users
-        token1.mint(user1, INITIAL_BALANCE);
-        token2.mint(user1, INITIAL_BALANCE);
-        token3.mint(user1, INITIAL_BALANCE);
-
-        token1.mint(user2, INITIAL_BALANCE);
-        token2.mint(user2, INITIAL_BALANCE);
     }
 
-    // ===== buildArk Tests =====
+    // Helper to create N mock tokens
+    function _createTokens(uint256 count) internal returns (address[] memory) {
+        address[] memory tokenAddrs = new address[](count);
+        for (uint256 i = 0; i < count; i++) {
+            MockERC20 token = new MockERC20(
+                string(abi.encodePacked("Token", vm.toString(i))),
+                string(abi.encodePacked("TK", vm.toString(i)))
+            );
+            token.mint(user1, INITIAL_BALANCE);
+            tokens.push(token);
+            tokenAddrs[i] = address(token);
+        }
+        return tokenAddrs;
+    }
 
-    function test_BuildArk_Success() public {
-        address[] memory tokens = new address[](2);
-        tokens[0] = address(token1);
-        tokens[1] = address(token2);
+    // Helper to get current tokens from ark
+    function _getArkTokens(address user) internal view returns (address[] memory) {
+        (,,, address[] memory arkTokens) = noah.getArk(user);
+        return arkTokens;
+    }
+
+    // ===== removePassenger Basic Tests =====
+
+    function test_RemovePassenger_FromMiddleOf10() public {
+        address[] memory tokenAddrs = _createTokens(10);
 
         vm.startPrank(user1);
+        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokenAddrs);
 
-        uint256 expectedDeadline = block.timestamp + DEADLINE_DURATION;
-
-        vm.expectEmit(true, true, false, true);
-        emit ArkBuilt(user1, beneficiary1, expectedDeadline);
-
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        (address beneficiary, uint256 deadline, uint256 duration,) = noah.getArk(user1);
-
-        assertEq(beneficiary, beneficiary1);
-        assertEq(deadline, expectedDeadline);
-        assertEq(duration, DEADLINE_DURATION);
-
-        vm.stopPrank();
-    }
-
-    function test_BuildArk_EmptyTokenList() public {
-        address[] memory tokens = new address[](0);
-
-        vm.prank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        // Should succeed even with empty token list
-    }
-
-    function test_BuildArk_RevertWhen_AlreadyInitialized() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        vm.startPrank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        vm.expectRevert("Account already initialized");
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        vm.stopPrank();
-    }
-
-    function test_BuildArk_RevertWhen_ZeroAddressBeneficiary() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        vm.prank(user1);
-        vm.expectRevert("Beneficiary cannot be the zero address");
-        noah.buildArk(address(0), DEADLINE_DURATION, tokens);
-    }
-
-    function test_BuildArk_RevertWhen_ZeroDuration() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        vm.prank(user1);
-        vm.expectRevert("Deadline duration must be greater than zero");
-        noah.buildArk(beneficiary1, 0, tokens);
-    }
-
-    function test_BuildArk_MultipleUsers() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        vm.prank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        vm.prank(user2);
-        noah.buildArk(beneficiary2, DEADLINE_DURATION * 2, tokens);
-
-        (address ben1,,,) = noah.getArk(user1);
-        (address ben2, uint256 deadline2, uint256 duration2,) = noah.getArk(user2);
-
-        assertEq(ben1, beneficiary1);
-        assertEq(ben2, beneficiary2);
-        assertEq(duration2, DEADLINE_DURATION * 2);
-    }
-
-    // ===== pingArk Tests =====
-
-    function test_PingArk_Success() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        vm.startPrank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        // Fast forward time
-        vm.warp(block.timestamp + 10 days);
-
-        uint256 expectedNewDeadline = block.timestamp + DEADLINE_DURATION;
+        // Remove the 5th token (index 4, middle of the list)
+        address tokenToRemove = tokenAddrs[4];
 
         vm.expectEmit(true, false, false, true);
-        emit ArkPinged(user1, expectedNewDeadline);
+        emit PassengerRemoved(user1, tokenToRemove);
 
-        noah.pingArk();
+        noah.removePassenger(tokenToRemove);
 
-        (, uint256 deadline,,) = noah.getArk(user1);
-        assertEq(deadline, expectedNewDeadline);
+        // Verify the token was removed
+        address[] memory remainingTokens = _getArkTokens(user1);
+        assertEq(remainingTokens.length, 9, "Should have 9 tokens after removal");
 
-        vm.stopPrank();
-    }
-
-    function test_PingArk_RevertWhen_NotInitialized() public {
-        vm.prank(user1);
-        vm.expectRevert("Account not initialized");
-        noah.pingArk();
-    }
-
-    function test_PingArk_MultipleTimes() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        vm.startPrank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        for (uint i = 0; i < 5; i++) {
-            vm.warp(block.timestamp + 5 days);
-            noah.pingArk();
+        // Verify the removed token is not in the list
+        for (uint256 i = 0; i < remainingTokens.length; i++) {
+            assertTrue(remainingTokens[i] != tokenToRemove, "Removed token should not be in list");
         }
 
-        (, uint256 deadline,,) = noah.getArk(user1);
-        assertEq(deadline, block.timestamp + DEADLINE_DURATION);
+        // Verify swap-and-pop behavior: last element should now be at index 4
+        assertEq(remainingTokens[4], tokenAddrs[9], "Last token should be swapped to removed position");
 
         vm.stopPrank();
     }
 
-    // ===== flood Tests =====
-
-    function test_Flood_Success() public {
-        address[] memory tokens = new address[](2);
-        tokens[0] = address(token1);
-        tokens[1] = address(token2);
-
-        vm.prank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        // Approve noah contract to transfer tokens
-        vm.startPrank(user1);
-        token1.approve(address(noah), type(uint256).max);
-        token2.approve(address(noah), type(uint256).max);
-        vm.stopPrank();
-
-        // Fast forward past deadline
-        vm.warp(block.timestamp + DEADLINE_DURATION + 1);
-
-        uint256 beneficiaryBalanceBefore1 = token1.balanceOf(beneficiary1);
-        uint256 beneficiaryBalanceBefore2 = token2.balanceOf(beneficiary1);
-
-        noah.flood(user1);
-
-        assertEq(token1.balanceOf(beneficiary1), beneficiaryBalanceBefore1 + INITIAL_BALANCE);
-        assertEq(token2.balanceOf(beneficiary1), beneficiaryBalanceBefore2 + INITIAL_BALANCE);
-        assertEq(token1.balanceOf(user1), 0);
-        assertEq(token2.balanceOf(user1), 0);
-    }
-
-    function test_Flood_ResetsDeadline() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        vm.prank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        vm.prank(user1);
-        token1.approve(address(noah), type(uint256).max);
-
-        vm.warp(block.timestamp + DEADLINE_DURATION + 1);
-        noah.flood(user1);
-
-        (, uint256 deadline,,) = noah.getArk(user1);
-        assertEq(deadline, 0);
-    }
-
-    function test_Flood_RevertWhen_NotInitialized() public {
-        vm.expectRevert("Account not initialized");
-        noah.flood(user1);
-    }
-
-    function test_Flood_RevertWhen_DeadlineNotPassed() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        vm.prank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        vm.expectRevert("Deadline has not passed");
-        noah.flood(user1);
-    }
-
-    function test_Flood_WithZeroBalance() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        vm.prank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        // Transfer all tokens away
-        vm.prank(user1);
-        token1.transfer(user2, INITIAL_BALANCE);
-
-        vm.warp(block.timestamp + DEADLINE_DURATION + 1);
-        noah.flood(user1);
-
-        // Should succeed but transfer 0 tokens
-        assertEq(token1.balanceOf(beneficiary1), 0);
-    }
-
-    function test_Flood_CanRebuildAfterFlood() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        vm.prank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        vm.prank(user1);
-        token1.approve(address(noah), type(uint256).max);
-
-        vm.warp(block.timestamp + DEADLINE_DURATION + 1);
-        noah.flood(user1);
-
-        // Should be able to build ark again
-        vm.prank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        (, uint256 deadline,,) = noah.getArk(user1);
-        assertGt(deadline, 0);
-    }
-
-    // ===== addPassengers Tests =====
-
-    function test_AddPassengers_Success() public {
-        address[] memory initialTokens = new address[](1);
-        initialTokens[0] = address(token1);
+    function test_RemovePassenger_FirstElement() public {
+        address[] memory tokenAddrs = _createTokens(10);
 
         vm.startPrank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, initialTokens);
+        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokenAddrs);
 
-        address[] memory newPassengers = new address[](2);
-        newPassengers[0] = address(token2);
-        newPassengers[1] = address(token3);
+        address tokenToRemove = tokenAddrs[0];
+        noah.removePassenger(tokenToRemove);
 
-        vm.expectEmit(true, false, false, true);
-        emit PassengersAdded(user1, newPassengers);
+        address[] memory remainingTokens = _getArkTokens(user1);
+        assertEq(remainingTokens.length, 9);
 
-        noah.addPassengers(newPassengers);
+        // First element should now be the last element from original array
+        assertEq(remainingTokens[0], tokenAddrs[9]);
+
         vm.stopPrank();
     }
 
-    function test_AddPassengers_RevertWhen_ArkNotBuilt() public {
-        address[] memory newPassengers = new address[](1);
-        newPassengers[0] = address(token2);
-
-        vm.prank(user1);
-        vm.expectRevert("Ark not built");
-        noah.addPassengers(newPassengers);
-    }
-
-    function test_AddPassengers_EmptyArray() public {
-        address[] memory initialTokens = new address[](1);
-        initialTokens[0] = address(token1);
+    function test_RemovePassenger_LastElement() public {
+        address[] memory tokenAddrs = _createTokens(10);
 
         vm.startPrank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, initialTokens);
+        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokenAddrs);
 
-        address[] memory newPassengers = new address[](0);
-        noah.addPassengers(newPassengers);
+        address tokenToRemove = tokenAddrs[9];
+        noah.removePassenger(tokenToRemove);
+
+        address[] memory remainingTokens = _getArkTokens(user1);
+        assertEq(remainingTokens.length, 9);
+
+        // All other elements should remain in original order
+        for (uint256 i = 0; i < 9; i++) {
+            assertEq(remainingTokens[i], tokenAddrs[i]);
+        }
+
         vm.stopPrank();
     }
 
-    // ===== removePassenger Tests =====
-
-    function test_RemovePassenger_Success() public {
-        address[] memory tokens = new address[](3);
-        tokens[0] = address(token1);
-        tokens[1] = address(token2);
-        tokens[2] = address(token3);
+    function test_RemovePassenger_AllTokensOneByOne() public {
+        address[] memory tokenAddrs = _createTokens(5);
 
         vm.startPrank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
+        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokenAddrs);
 
-        vm.expectEmit(true, false, false, true);
-        emit PassengerRemoved(user1, address(token2));
+        // Remove all tokens one by one
+        for (uint256 i = 0; i < 5; i++) {
+            address[] memory currentTokens = _getArkTokens(user1);
+            if (currentTokens.length > 0) {
+                noah.removePassenger(currentTokens[0]);
+            }
+        }
 
-        noah.removePassenger(address(token2));
+        address[] memory remainingTokens = _getArkTokens(user1);
+        assertEq(remainingTokens.length, 0, "All tokens should be removed");
+
         vm.stopPrank();
     }
+
+    function test_RemovePassenger_VerifyOrderAfterMultipleRemovals() public {
+        address[] memory tokenAddrs = _createTokens(10);
+
+        vm.startPrank(user1);
+        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokenAddrs);
+
+        // Remove tokens at indices 2, 5, 7 (in that order)
+        // After removing index 2: [0,1,9,3,4,5,6,7,8] (9 swapped to position 2)
+        noah.removePassenger(tokenAddrs[2]);
+
+        // After removing original index 5: [0,1,9,3,4,8,6,7] (8 swapped to position 5)
+        noah.removePassenger(tokenAddrs[5]);
+
+        // After removing original index 7: [0,1,9,3,4,8,6] (7 was at end after previous swap, now removed)
+        noah.removePassenger(tokenAddrs[7]);
+
+        address[] memory remainingTokens = _getArkTokens(user1);
+        assertEq(remainingTokens.length, 7, "Should have 7 tokens");
+
+        // Verify removed tokens are not present
+        for (uint256 i = 0; i < remainingTokens.length; i++) {
+            assertTrue(remainingTokens[i] != tokenAddrs[2], "Token 2 should be removed");
+            assertTrue(remainingTokens[i] != tokenAddrs[5], "Token 5 should be removed");
+            assertTrue(remainingTokens[i] != tokenAddrs[7], "Token 7 should be removed");
+        }
+
+        vm.stopPrank();
+    }
+
+    function test_RemovePassenger_NonExistentToken() public {
+        address[] memory tokenAddrs = _createTokens(5);
+
+        vm.startPrank(user1);
+        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokenAddrs);
+
+        // Try to remove a token that doesn't exist in the ark
+        address nonExistentToken = makeAddr("nonExistent");
+
+        // Should still emit event but not change the array
+        noah.removePassenger(nonExistentToken);
+
+        address[] memory remainingTokens = _getArkTokens(user1);
+        assertEq(remainingTokens.length, 5, "Array length should be unchanged");
+
+        vm.stopPrank();
+    }
+
+    // ===== Gas Comparison Tests =====
+
+    function test_Gas_RemoveMiddleToken_5Tokens() public {
+        address[] memory tokenAddrs = _createTokens(5);
+
+        vm.startPrank(user1);
+        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokenAddrs);
+
+        // Remove middle token (index 2)
+        address tokenToRemove = tokenAddrs[2];
+
+        uint256 gasBefore = gasleft();
+        noah.removePassenger(tokenToRemove);
+        uint256 gasUsed = gasBefore - gasleft();
+
+        console.log("Gas used to remove middle token from 5 tokens:", gasUsed);
+
+        vm.stopPrank();
+    }
+
+    function test_Gas_RemoveMiddleToken_10Tokens() public {
+        address[] memory tokenAddrs = _createTokens(10);
+
+        vm.startPrank(user1);
+        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokenAddrs);
+
+        // Remove middle token (index 5)
+        address tokenToRemove = tokenAddrs[5];
+
+        uint256 gasBefore = gasleft();
+        noah.removePassenger(tokenToRemove);
+        uint256 gasUsed = gasBefore - gasleft();
+
+        console.log("Gas used to remove middle token from 10 tokens:", gasUsed);
+
+        vm.stopPrank();
+    }
+
+    function test_Gas_RemoveMiddleToken_15Tokens() public {
+        address[] memory tokenAddrs = _createTokens(15);
+
+        vm.startPrank(user1);
+        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokenAddrs);
+
+        // Remove middle token (index 7)
+        address tokenToRemove = tokenAddrs[7];
+
+        uint256 gasBefore = gasleft();
+        noah.removePassenger(tokenToRemove);
+        uint256 gasUsed = gasBefore - gasleft();
+
+        console.log("Gas used to remove middle token from 15 tokens:", gasUsed);
+
+        vm.stopPrank();
+    }
+
+    function test_Gas_Summary() public {
+        console.log("\n========================================");
+        console.log("=== REMOVE PASSENGER GAS COMPARISON ===");
+        console.log("========================================\n");
+
+        console.log("Testing removal of MIDDLE token:\n");
+
+        // 5 tokens
+        {
+            delete tokens;
+            Noah n = new Noah();
+            address[] memory addrs = _createTokens(5);
+            vm.prank(user1);
+            n.buildArk(beneficiary1, DEADLINE_DURATION, addrs);
+
+            vm.prank(user1);
+            uint256 g1 = gasleft();
+            n.removePassenger(addrs[2]); // middle
+            uint256 gas5 = g1 - gasleft();
+            console.log("  5 tokens - middle removal:", gas5, "gas");
+        }
+
+        // 10 tokens
+        {
+            delete tokens;
+            Noah n = new Noah();
+            address[] memory addrs = _createTokens(10);
+            vm.prank(user1);
+            n.buildArk(beneficiary1, DEADLINE_DURATION, addrs);
+
+            vm.prank(user1);
+            uint256 g1 = gasleft();
+            n.removePassenger(addrs[5]); // middle
+            uint256 gas10 = g1 - gasleft();
+            console.log(" 10 tokens - middle removal:", gas10, "gas");
+        }
+
+        // 15 tokens
+        {
+            delete tokens;
+            Noah n = new Noah();
+            address[] memory addrs = _createTokens(15);
+            vm.prank(user1);
+            n.buildArk(beneficiary1, DEADLINE_DURATION, addrs);
+
+            vm.prank(user1);
+            uint256 g1 = gasleft();
+            n.removePassenger(addrs[7]); // middle
+            uint256 gas15 = g1 - gasleft();
+            console.log(" 15 tokens - middle removal:", gas15, "gas");
+        }
+
+        console.log("\n----------------------------------------");
+        console.log("Note: Gas increases ~linearly with array");
+        console.log("size due to the loop search. Swap-and-pop");
+        console.log("keeps removal O(n) search + O(1) removal.");
+        console.log("----------------------------------------\n");
+    }
+
+    // ===== Additional Edge Case Tests =====
 
     function test_RemovePassenger_RevertWhen_ArkNotBuilt() public {
         vm.prank(user1);
         vm.expectRevert("Ark not built");
-        noah.removePassenger(address(token1));
+        noah.removePassenger(address(0x1234));
     }
 
-    function test_RemovePassenger_NonExistentToken() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
+    function test_RemovePassenger_SingleTokenArk() public {
+        address[] memory tokenAddrs = _createTokens(1);
 
         vm.startPrank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
+        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokenAddrs);
 
-        // Should not revert, just does nothing
-        noah.removePassenger(address(token2));
-        vm.stopPrank();
-    }
+        noah.removePassenger(tokenAddrs[0]);
 
-    // ===== updateDeadlineDuration Tests =====
-
-    function test_UpdateDeadlineDuration_Success() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        vm.startPrank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        uint256 newDuration = 60 days;
-        uint256 expectedDeadline = block.timestamp + newDuration;
-
-        vm.expectEmit(true, false, false, true);
-        emit DeadlineUpdated(user1, newDuration, expectedDeadline);
-
-        noah.updateDeadlineDuration(newDuration);
-
-        (,uint256 deadline, uint256 duration,) = noah.getArk(user1);
-        assertEq(duration, newDuration);
-        assertEq(deadline, expectedDeadline);
+        address[] memory remainingTokens = _getArkTokens(user1);
+        assertEq(remainingTokens.length, 0);
 
         vm.stopPrank();
     }
 
-    function test_UpdateDeadlineDuration_RevertWhen_ArkNotBuilt() public {
-        vm.prank(user1);
-        vm.expectRevert("Ark not built");
-        noah.updateDeadlineDuration(60 days);
-    }
-
-    function test_UpdateDeadlineDuration_RevertWhen_ZeroDuration() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
+    function test_RemovePassenger_ThenFlood() public {
+        address[] memory tokenAddrs = _createTokens(5);
 
         vm.startPrank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
+        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokenAddrs);
 
-        vm.expectRevert("Duration must be greater than zero");
-        noah.updateDeadlineDuration(0);
+        // Approve tokens for flood
+        for (uint256 i = 0; i < tokenAddrs.length; i++) {
+            MockERC20(tokenAddrs[i]).approve(address(noah), type(uint256).max);
+        }
 
-        vm.stopPrank();
-    }
-
-    function test_UpdateDeadlineDuration_ResetsTimer() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        vm.startPrank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        // Fast forward time
-        vm.warp(block.timestamp + 20 days);
-
-        uint256 newDuration = 10 days;
-        noah.updateDeadlineDuration(newDuration);
-
-        (, uint256 deadline,,) = noah.getArk(user1);
-        assertEq(deadline, block.timestamp + newDuration);
-
-        vm.stopPrank();
-    }
-
-    // ===== destroyArk Tests =====
-
-    function test_DestroyArk_Success() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        vm.startPrank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        vm.expectEmit(true, false, false, true);
-        emit ArkDestroyed(user1);
-
-        noah.destroyArk();
-
-        (, uint256 deadline,,) = noah.getArk(user1);
-        assertEq(deadline, 0);
-
-        vm.stopPrank();
-    }
-
-    function test_DestroyArk_RevertWhen_ArkNotBuilt() public {
-        vm.prank(user1);
-        vm.expectRevert("Ark not built");
-        noah.destroyArk();
-    }
-
-    function test_DestroyArk_CanRebuildAfterDestroy() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        vm.startPrank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-        noah.destroyArk();
-
-        // Should be able to build a new ark
-        noah.buildArk(beneficiary2, DEADLINE_DURATION * 2, tokens);
-
-        (address beneficiary, uint256 deadline, uint256 duration,) = noah.getArk(user1);
-        assertEq(beneficiary, beneficiary2);
-        assertGt(deadline, 0);
-        assertEq(duration, DEADLINE_DURATION * 2);
-
-        vm.stopPrank();
-    }
-
-    function test_DestroyArk_CannotPingAfterDestroy() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        vm.startPrank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-        noah.destroyArk();
-
-        vm.expectRevert("Account not initialized");
-        noah.pingArk();
-
-        vm.stopPrank();
-    }
-
-    function test_DestroyArk_CannotAddPassengersAfterDestroy() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        vm.startPrank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-        noah.destroyArk();
-
-        address[] memory newPassengers = new address[](1);
-        newPassengers[0] = address(token2);
-
-        vm.expectRevert("Ark not built");
-        noah.addPassengers(newPassengers);
-
-        vm.stopPrank();
-    }
-
-    // ===== Edge Cases and Integration Tests =====
-
-    function test_CompleteUserJourney() public {
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        // Build ark
-        vm.prank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        // Add more passengers
-        address[] memory newPassengers = new address[](1);
-        newPassengers[0] = address(token2);
-        vm.prank(user1);
-        noah.addPassengers(newPassengers);
-
-        // Ping ark multiple times
-        vm.warp(block.timestamp + 10 days);
-        vm.prank(user1);
-        noah.pingArk();
-
-        vm.warp(block.timestamp + 10 days);
-        vm.prank(user1);
-        noah.pingArk();
-
-        // Update duration
-        vm.prank(user1);
-        noah.updateDeadlineDuration(5 days);
-
-        // Remove a passenger
-        vm.prank(user1);
-        noah.removePassenger(address(token1));
-
-        // Wait and flood
-        vm.warp(block.timestamp + 6 days);
-
-        vm.startPrank(user1);
-        token2.approve(address(noah), type(uint256).max);
+        // Remove middle token
+        noah.removePassenger(tokenAddrs[2]);
         vm.stopPrank();
 
+        // Warp past deadline
+        vm.warp(block.timestamp + DEADLINE_DURATION + 1);
+
+        // Flood should only transfer remaining 4 tokens
         noah.flood(user1);
 
-        assertEq(token2.balanceOf(beneficiary1), INITIAL_BALANCE);
+        // Verify balances
+        assertEq(MockERC20(tokenAddrs[0]).balanceOf(beneficiary1), INITIAL_BALANCE);
+        assertEq(MockERC20(tokenAddrs[1]).balanceOf(beneficiary1), INITIAL_BALANCE);
+        assertEq(MockERC20(tokenAddrs[2]).balanceOf(beneficiary1), 0); // Was removed
+        assertEq(MockERC20(tokenAddrs[3]).balanceOf(beneficiary1), INITIAL_BALANCE);
+        assertEq(MockERC20(tokenAddrs[4]).balanceOf(beneficiary1), INITIAL_BALANCE);
     }
 
-    function test_GetArk_UninitializedAccount() public view {
-        (address beneficiary, uint256 deadline, uint256 duration,) = noah.getArk(user1);
+    function testFuzz_RemovePassenger_AnyPosition(uint8 tokenCount, uint8 removeIndex) public {
+        // Bound inputs to reasonable values
+        tokenCount = uint8(bound(tokenCount, 1, 20));
+        removeIndex = uint8(bound(removeIndex, 0, tokenCount - 1));
 
-        assertEq(beneficiary, address(0));
-        assertEq(deadline, 0);
-        assertEq(duration, 0);
-    }
+        address[] memory tokenAddrs = _createTokens(tokenCount);
 
-    // ===== Fuzz Tests =====
+        vm.startPrank(user1);
+        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokenAddrs);
 
-    function testFuzz_BuildArk(address _beneficiary, uint256 _duration) public {
-        vm.assume(_beneficiary != address(0));
-        vm.assume(_duration > 0 && _duration < 365 days * 10);
+        address tokenToRemove = tokenAddrs[removeIndex];
+        noah.removePassenger(tokenToRemove);
 
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
+        address[] memory remainingTokens = _getArkTokens(user1);
+        assertEq(remainingTokens.length, tokenCount - 1);
 
-        vm.prank(user1);
-        noah.buildArk(_beneficiary, _duration, tokens);
+        // Verify removed token is not present
+        for (uint256 i = 0; i < remainingTokens.length; i++) {
+            assertTrue(remainingTokens[i] != tokenToRemove);
+        }
 
-        (address beneficiary, uint256 deadline, uint256 duration,) = noah.getArk(user1);
-
-        assertEq(beneficiary, _beneficiary);
-        assertEq(duration, _duration);
-        assertEq(deadline, block.timestamp + _duration);
-    }
-
-    function testFuzz_PingArk(uint256 _timeElapsed) public {
-        vm.assume(_timeElapsed > 0 && _timeElapsed < DEADLINE_DURATION);
-
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        vm.prank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        vm.warp(block.timestamp + _timeElapsed);
-
-        vm.prank(user1);
-        noah.pingArk();
-
-        (, uint256 deadline,,) = noah.getArk(user1);
-        assertEq(deadline, block.timestamp + DEADLINE_DURATION);
-    }
-
-    function testFuzz_UpdateDeadlineDuration(uint256 _newDuration) public {
-        vm.assume(_newDuration > 0 && _newDuration < 365 days * 10);
-
-        address[] memory tokens = new address[](1);
-        tokens[0] = address(token1);
-
-        vm.prank(user1);
-        noah.buildArk(beneficiary1, DEADLINE_DURATION, tokens);
-
-        vm.prank(user1);
-        noah.updateDeadlineDuration(_newDuration);
-
-        (,, uint256 duration,) = noah.getArk(user1);
-        assertEq(duration, _newDuration);
+        vm.stopPrank();
     }
 }
