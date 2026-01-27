@@ -739,7 +739,7 @@ function CreateTab({ onArkCreated }) {
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <p className="text-sm font-medium text-orange-700">
-                {tokensNeedingApproval.length} token{tokensNeedingApproval.length !== 1 ? 's' : ''} need approval
+                {tokensNeedingApproval.length} token{tokensNeedingApproval.length !== 1 ? 's need' : ' needs'} approval
               </p>
               <p className="text-xs text-orange-600 mt-0.5">
                 {supportsBatching
