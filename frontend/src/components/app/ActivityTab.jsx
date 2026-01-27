@@ -127,15 +127,16 @@ function formatTimestamp(timestamp) {
 
   const minutes = Math.floor(diff / (1000 * 60));
   const hours = Math.floor(diff / (1000 * 60 * 60));
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
   if (minutes < 60) return `${minutes}m ago`;
   if (hours < 24) return `${hours}h ago`;
-  if (days < 7) return `${days}d ago`;
 
+  // Over 24 hours: show date and time
   return new Date(timestamp * 1000).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
   });
 }
 
