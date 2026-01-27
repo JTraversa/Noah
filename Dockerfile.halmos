@@ -1,0 +1,27 @@
+# Dockerfile for Halmos formal verification
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Foundry
+RUN curl -L https://foundry.paradigm.xyz | bash
+ENV PATH="/root/.foundry/bin:${PATH}"
+RUN foundryup
+
+# Install Halmos and z3-solver
+RUN pip install --no-cache-dir halmos z3-solver
+
+# Set working directory
+WORKDIR /app
+
+# Entrypoint script that compiles and runs halmos
+COPY entrypoint-halmos.sh /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["--contract", "NoahSymbolicTest"]
