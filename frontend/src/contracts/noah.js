@@ -1,7 +1,7 @@
 // Noah V1 Contract Configuration
 // Deployed via CREATE2 with salt 0x4e6f6168 ("Noah")
 
-export const NOAH_ADDRESS = '0xB7b9e0ba2B9748e7B5770AB165D142100DD6e4E3';
+export const NOAH_ADDRESS = '0xCDfD3C51BAe3A7CC2Ff309dB7aCC0Dce4c12d900';
 
 export const NOAH_ABI = [
   {
@@ -81,6 +81,7 @@ export const NOAH_ABI = [
       { name: 'user', type: 'address', indexed: true },
       { name: 'beneficiary', type: 'address', indexed: true },
       { name: 'deadline', type: 'uint256', indexed: false },
+      { name: 'tokens', type: 'address[]', indexed: false },
     ],
   },
   {
