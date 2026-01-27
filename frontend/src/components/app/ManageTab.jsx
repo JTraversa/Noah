@@ -942,7 +942,7 @@ function ManageTab() {
                 Approving Tokens ({currentApprovalIndex + 1}/{tokensNeedingApproval.length})
               </h3>
               <p className="text-sm text-slate-500 mb-4">
-                Approve Noah to transfer your tokens when the flood triggers
+                Approve Noah to transfer your tokens when your conditions trigger
               </p>
 
               {/* Token approval list */}
