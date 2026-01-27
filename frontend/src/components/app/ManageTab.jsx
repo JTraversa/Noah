@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
 import { formatUnits } from 'viem';
 import { NOAH_ADDRESS, NOAH_ABI, MOCK_USDC_ADDRESS, ERC20_ABI } from '../../contracts/noah';
 
@@ -34,6 +34,7 @@ function formatDuration(seconds) {
 
 function ManageTab() {
   const { address, isConnected } = useAccount();
+  const publicClient = usePublicClient();
   const [tokenBalances, setTokenBalances] = useState({});
   const [isEditingDuration, setIsEditingDuration] = useState(false);
   const [newDurationMinutes, setNewDurationMinutes] = useState('');
@@ -42,6 +43,7 @@ function ManageTab() {
   const [customTokenAddress, setCustomTokenAddress] = useState('');
   const [customTokenError, setCustomTokenError] = useState('');
   const [customTokens, setCustomTokens] = useState([]);
+  const [isLoadingCustomToken, setIsLoadingCustomToken] = useState(false);
 
   // Read ark data from contract
   const { data: arkData, isLoading, refetch } = useReadContract({
@@ -208,7 +210,7 @@ function ManageTab() {
     return /^0x[a-fA-F0-9]{40}$/.test(addr);
   };
 
-  const addCustomTokenToList = () => {
+  const addCustomTokenToList = async () => {
     const trimmedAddress = customTokenAddress.trim();
 
     if (!isValidAddress(trimmedAddress)) {
@@ -229,17 +231,47 @@ function ManageTab() {
       return;
     }
 
-    const newToken = {
-      address: trimmedAddress,
-      symbol: 'CUSTOM',
-      balance: '—',
-      isCustom: true,
-    };
-
-    setCustomTokens(prev => [...prev, newToken]);
-    setSelectedTokensToAdd(prev => [...prev, trimmedAddress]);
-    setCustomTokenAddress('');
+    setIsLoadingCustomToken(true);
     setCustomTokenError('');
+
+    try {
+      // Fetch token data from chain
+      const [symbol, decimals, balance] = await Promise.all([
+        publicClient.readContract({
+          address: trimmedAddress,
+          abi: ERC20_ABI,
+          functionName: 'symbol',
+        }),
+        publicClient.readContract({
+          address: trimmedAddress,
+          abi: ERC20_ABI,
+          functionName: 'decimals',
+        }),
+        publicClient.readContract({
+          address: trimmedAddress,
+          abi: ERC20_ABI,
+          functionName: 'balanceOf',
+          args: [address],
+        }),
+      ]);
+
+      const formattedBalance = formatUnits(balance, decimals);
+      const newToken = {
+        address: trimmedAddress,
+        symbol: symbol || 'UNKNOWN',
+        balance: parseFloat(formattedBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 }),
+        isCustom: true,
+      };
+
+      setCustomTokens(prev => [...prev, newToken]);
+      setSelectedTokensToAdd(prev => [...prev, trimmedAddress]);
+      setCustomTokenAddress('');
+    } catch (err) {
+      console.error('Failed to fetch token data:', err);
+      setCustomTokenError('Failed to fetch token data. Is this a valid ERC20 token?');
+    } finally {
+      setIsLoadingCustomToken(false);
+    }
   };
 
   if (!isConnected) {
@@ -550,7 +582,7 @@ function ManageTab() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-purple-200 flex items-center justify-center text-xs font-bold text-purple-600">
-                      ?
+                      {token.symbol.charAt(0)}
                     </div>
                     <div className="text-left">
                       <div className="text-sm font-medium text-slate-700">
@@ -563,6 +595,9 @@ function ManageTab() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
+                    <div className="text-sm text-slate-600">
+                      {token.balance}
+                    </div>
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                       selectedTokensToAdd.includes(token.address)
                         ? 'bg-indigo-500 border-indigo-500'
@@ -599,9 +634,10 @@ function ManageTab() {
                       <button
                         type="button"
                         onClick={addCustomTokenToList}
-                        className="px-3 py-1 rounded-lg bg-purple-500 text-white text-xs font-medium hover:bg-purple-600 transition-all"
+                        disabled={isLoadingCustomToken}
+                        className="px-3 py-1 rounded-lg bg-purple-500 text-white text-xs font-medium hover:bg-purple-600 disabled:opacity-50 transition-all"
                       >
-                        Add
+                        {isLoadingCustomToken ? '...' : 'Add'}
                       </button>
                     )}
                   </div>

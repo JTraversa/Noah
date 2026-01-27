@@ -52,16 +52,35 @@ function ConnectButton() {
               }
 
               return (
-                <button
-                  onClick={openAccountModal}
-                  type="button"
-                  className="flex items-center gap-2 solid-btn px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-semibold text-indigo-600 shadow-lg shadow-indigo-400/45"
-                >
-                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                  <span className="font-mono">
-                    {account.displayName}
-                  </span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={openChainModal}
+                    type="button"
+                    className="flex items-center gap-1.5 glass-btn px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium text-slate-600 shadow-lg shadow-indigo-400/40"
+                  >
+                    {chain.hasIcon && chain.iconUrl && (
+                      <img
+                        src={chain.iconUrl}
+                        alt={chain.name ?? 'Chain'}
+                        className="w-4 h-4 rounded-full"
+                      />
+                    )}
+                    <span className="hidden sm:inline">{chain.name}</span>
+                    <svg className="w-3 h-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={openAccountModal}
+                    type="button"
+                    className="flex items-center gap-2 solid-btn px-4 md:px-6 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-semibold text-indigo-600 shadow-lg shadow-indigo-400/45"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                    <span className="font-mono">
+                      {account.displayName}
+                    </span>
+                  </button>
+                </div>
               );
             })()}
           </div>

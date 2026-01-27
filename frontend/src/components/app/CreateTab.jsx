@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient } from 'wagmi';
 import { formatUnits } from 'viem';
 import { NOAH_ADDRESS, NOAH_ABI, MOCK_USDC_ADDRESS, ERC20_ABI } from '../../contracts/noah';
 
@@ -13,6 +13,7 @@ const durationOptions = [
 
 function CreateTab() {
   const { address, isConnected } = useAccount();
+  const publicClient = usePublicClient();
   const [beneficiary, setBeneficiary] = useState('');
   const [duration, setDuration] = useState(2592000);
   const [isCustomDuration, setIsCustomDuration] = useState(false);
@@ -101,12 +102,32 @@ function CreateTab() {
     setCustomTokenError('');
 
     try {
-      // Add the token with placeholder data - balance will be fetched on-chain when needed
+      // Fetch token data from chain
+      const [symbol, decimals, balance] = await Promise.all([
+        publicClient.readContract({
+          address: trimmedAddress,
+          abi: ERC20_ABI,
+          functionName: 'symbol',
+        }),
+        publicClient.readContract({
+          address: trimmedAddress,
+          abi: ERC20_ABI,
+          functionName: 'decimals',
+        }),
+        publicClient.readContract({
+          address: trimmedAddress,
+          abi: ERC20_ABI,
+          functionName: 'balanceOf',
+          args: [address],
+        }),
+      ]);
+
+      const formattedBalance = formatUnits(balance, decimals);
       const newToken = {
         address: trimmedAddress,
-        symbol: 'CUSTOM',
-        balance: '—',
-        usdValue: 0,
+        symbol: symbol || 'UNKNOWN',
+        balance: parseFloat(formattedBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 }),
+        usdValue: 0, // We don't have price data for custom tokens
         isCustom: true,
       };
 
@@ -114,7 +135,8 @@ function CreateTab() {
       setSelectedTokens(prev => [...prev, trimmedAddress]);
       setCustomTokenAddress('');
     } catch (err) {
-      setCustomTokenError('Failed to add token');
+      console.error('Failed to fetch token data:', err);
+      setCustomTokenError('Failed to fetch token data. Is this a valid ERC20 token?');
     } finally {
       setIsLoadingCustomToken(false);
     }
