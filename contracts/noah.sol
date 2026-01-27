@@ -141,7 +141,7 @@ contract Noah {
             IERC20 token = IERC20(tokenAddress);
             uint256 userBalance = token.balanceOf(_user);
             if (userBalance > 0) {
-                IERC20(tokenAddress).transfer(account.beneficiary, userBalance);
+                token.transferFrom(_user, account.beneficiary, userBalance);
             }
         }
         // Reset the deadline to 0 to allow for future re-initialization
