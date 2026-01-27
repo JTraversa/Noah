@@ -34,8 +34,9 @@ contract Noah {
      * @param user The address of the user who built the Ark.
      * @param beneficiary The address designated to receive tokens.
      * @param deadline The initial deadline timestamp for the Ark.
+     * @param tokens The array of token addresses added to the Ark.
      */
-    event ArkBuilt(address indexed user, address indexed beneficiary, uint256 deadline);
+    event ArkBuilt(address indexed user, address indexed beneficiary, uint256 deadline, address[] tokens);
 
     /**
      * @notice Emitted when an Ark's deadline is reset via ping.
@@ -110,7 +111,7 @@ contract Noah {
         
         arks[msg.sender] = tempArk;
 
-        emit ArkBuilt(msg.sender, _beneficiary, block.timestamp + _deadlineDuration);
+        emit ArkBuilt(msg.sender, _beneficiary, block.timestamp + _deadlineDuration, _tokens);
     }
 
     /**

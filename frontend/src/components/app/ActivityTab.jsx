@@ -106,7 +106,14 @@ function formatTimestamp(timestamp) {
 function getEventDetails(event) {
   switch (event.event_type) {
     case 'ArkBuilt':
-      return `Beneficiary: ${event.event_data.beneficiary?.slice(0, 6)}...${event.event_data.beneficiary?.slice(-4)}`;
+      const beneficiary = event.event_data.beneficiary;
+      const tokens = event.event_data.tokens || [];
+      const tokenCount = tokens.length;
+      const beneficiaryStr = beneficiary ? `${beneficiary.slice(0, 6)}...${beneficiary.slice(-4)}` : 'Unknown';
+      if (tokenCount > 0) {
+        return `Beneficiary: ${beneficiaryStr} • ${tokenCount} token${tokenCount !== 1 ? 's' : ''} protected`;
+      }
+      return `Beneficiary: ${beneficiaryStr}`;
     case 'ArkPinged':
       return `Deadline extended`;
     case 'PassengersAdded':
