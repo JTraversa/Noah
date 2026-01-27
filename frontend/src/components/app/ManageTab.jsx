@@ -32,6 +32,8 @@ function formatDuration(seconds) {
   return `${days} day${days !== 1 ? 's' : ''}`;
 }
 
+const API_BASE_URL = 'https://noah-backend.fly.dev';
+
 function ManageTab() {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
@@ -44,6 +46,8 @@ function ManageTab() {
   const [customTokenError, setCustomTokenError] = useState('');
   const [customTokens, setCustomTokens] = useState([]);
   const [isLoadingCustomToken, setIsLoadingCustomToken] = useState(false);
+  const [showDestroyPendingModal, setShowDestroyPendingModal] = useState(false);
+  const [destroyConfirmedOnChain, setDestroyConfirmedOnChain] = useState(false);
 
   // Read ark data from contract
   const { data: arkData, isLoading, refetch } = useReadContract({
@@ -143,9 +147,35 @@ function ManageTab() {
       }
       if (isDestroySuccess) {
         setShowDestroyConfirm(false);
+        setDestroyConfirmedOnChain(true);
+        setShowDestroyPendingModal(true);
       }
     }
   }, [isPingSuccess, isUpdateSuccess, isRemoveSuccess, isAddSuccess, isDestroySuccess, refetch]);
+
+  // Poll API to check if ark has been destroyed
+  useEffect(() => {
+    if (!destroyConfirmedOnChain || !address) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/arks/${address}`);
+        const data = await response.json();
+
+        // If no arks found for this address, destruction is complete
+        if (!data || data.length === 0 || (Array.isArray(data) && data.every(ark => ark.chain_id !== 11155111))) {
+          setShowDestroyPendingModal(false);
+          setDestroyConfirmedOnChain(false);
+          refetch(); // Refresh the local state
+          clearInterval(pollInterval);
+        }
+      } catch (err) {
+        console.error('Error polling API:', err);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [destroyConfirmedOnChain, address, refetch]);
 
   const handlePing = () => {
     writePing({
@@ -654,6 +684,46 @@ function ManageTab() {
             >
               {isAdding ? 'Confirm in Wallet...' : isAddConfirming ? 'Adding...' : `Add ${selectedTokensToAdd.length} Token${selectedTokensToAdd.length !== 1 ? 's' : ''}`}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Destroy Pending Modal */}
+      {showDestroyPendingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowDestroyPendingModal(false)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+            <button
+              onClick={() => setShowDestroyPendingModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+            >
+              <span className="text-xl">&times;</span>
+            </button>
+
+            <div className="text-center">
+              <div className="text-4xl mb-4 animate-pulse">🔥</div>
+              <h3 className="text-lg font-semibold text-slate-700 mb-2">
+                Destroying Your Ark
+              </h3>
+              <p className="text-sm text-slate-500 mb-4">
+                Your transaction has been confirmed on-chain. Waiting for the indexer to process the destruction...
+              </p>
+
+              <div className="flex items-center justify-center gap-2 text-sm text-amber-600 bg-amber-50 rounded-lg p-3">
+                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                <span>Processing destruction...</span>
+              </div>
+
+              <p className="text-xs text-slate-400 mt-4">
+                You can close this modal. The page will update automatically once complete.
+              </p>
+            </div>
           </div>
         </div>
       )}

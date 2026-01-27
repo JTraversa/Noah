@@ -3,6 +3,8 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadCont
 import { formatUnits } from 'viem';
 import { NOAH_ADDRESS, NOAH_ABI, MOCK_USDC_ADDRESS, ERC20_ABI } from '../../contracts/noah';
 
+const API_BASE_URL = 'https://noah-backend.fly.dev';
+
 const durationOptions = [
   { value: 604800, label: '1 Week' },
   { value: 2592000, label: '30 Days' },
@@ -11,7 +13,7 @@ const durationOptions = [
   { value: 63072000, label: '2 Years' },
 ];
 
-function CreateTab() {
+function CreateTab({ onArkCreated }) {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
   const [beneficiary, setBeneficiary] = useState('');
@@ -23,6 +25,8 @@ function CreateTab() {
   const [customTokenAddress, setCustomTokenAddress] = useState('');
   const [customTokenError, setCustomTokenError] = useState('');
   const [isLoadingCustomToken, setIsLoadingCustomToken] = useState(false);
+  const [showCreationPendingModal, setShowCreationPendingModal] = useState(false);
+  const [creationConfirmedOnChain, setCreationConfirmedOnChain] = useState(false);
 
   // Read USDC balance
   const { data: usdcBalance } = useReadContract({
@@ -67,6 +71,38 @@ function CreateTab() {
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
+
+  // Show modal when transaction is confirmed
+  useEffect(() => {
+    if (isSuccess) {
+      setCreationConfirmedOnChain(true);
+      setShowCreationPendingModal(true);
+    }
+  }, [isSuccess]);
+
+  // Poll API to check if ark has been created
+  useEffect(() => {
+    if (!creationConfirmedOnChain || !address) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/arks/${address}`);
+        const data = await response.json();
+
+        // If ark found for this address on Sepolia, creation is complete
+        if (data && Array.isArray(data) && data.some(ark => ark.chain_id === 11155111)) {
+          setShowCreationPendingModal(false);
+          setCreationConfirmedOnChain(false);
+          clearInterval(pollInterval);
+          onArkCreated?.(); // Trigger parent to refetch and show ManageTab
+        }
+      } catch (err) {
+        console.error('Error polling API:', err);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [creationConfirmedOnChain, address, onArkCreated]);
 
   const toggleToken = (addr) => {
     setSelectedTokens((prev) =>
@@ -182,24 +218,51 @@ function CreateTab() {
     );
   }
 
-  if (isSuccess) {
-    return (
-      <div className="text-center py-8">
-        <div className="text-4xl mb-3">✅</div>
-        <h3 className="text-base md:text-lg font-semibold text-green-600 mb-2">
-          Ark Created Successfully!
-        </h3>
-        <p className="text-sm text-slate-500 mb-4">
-          Your dead man's switch is now active.
-        </p>
-        <p className="text-xs text-slate-400 font-mono break-all">
-          Tx: {hash}
-        </p>
-      </div>
-    );
-  }
-
   return (
+    <>
+    {/* Creation Pending Modal */}
+    {showCreationPendingModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className="absolute inset-0 bg-black/50"
+          onClick={() => setShowCreationPendingModal(false)}
+        />
+        <div className="relative bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+          <button
+            onClick={() => setShowCreationPendingModal(false)}
+            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+          >
+            <span className="text-xl">&times;</span>
+          </button>
+
+          <div className="text-center">
+            <div className="text-4xl mb-4 animate-pulse">🚢</div>
+            <h3 className="text-lg font-semibold text-slate-700 mb-2">
+              Building Your Ark
+            </h3>
+            <p className="text-sm text-slate-500 mb-4">
+              Your transaction has been confirmed on-chain. Waiting for the indexer to process your new Ark...
+            </p>
+
+            <div className="flex items-center justify-center gap-2 text-sm text-indigo-600 bg-indigo-50 rounded-lg p-3">
+              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span>Processing creation...</span>
+            </div>
+
+            <p className="text-xs text-slate-400 mt-4">
+              Tx: <span className="font-mono">{hash?.slice(0, 10)}...{hash?.slice(-8)}</span>
+            </p>
+            <p className="text-xs text-slate-400 mt-2">
+              You can close this modal. The page will update automatically once complete.
+            </p>
+          </div>
+        </div>
+      </div>
+    )}
+
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Beneficiary Input */}
       <div>
@@ -405,6 +468,7 @@ function CreateTab() {
         {isPending ? 'Confirm in Wallet...' : isConfirming ? 'Creating Ark...' : 'Build Your Ark'}
       </button>
     </form>
+    </>
   );
 }
 

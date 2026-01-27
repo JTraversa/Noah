@@ -11,7 +11,7 @@ function AppPage() {
   const { address } = useAccount();
 
   // Read ark data from contract
-  const { data: arkData } = useReadContract({
+  const { data: arkData, refetch: refetchArk } = useReadContract({
     address: NOAH_ADDRESS,
     abi: NOAH_ABI,
     functionName: 'getArk',
@@ -61,7 +61,7 @@ function AppPage() {
 
       {/* Tab Content */}
       <div className="glass rounded-2xl md:rounded-3xl p-4 md:p-6">
-        {activeTab === 'ark' && (hasArk ? <ManageTab /> : <CreateTab />)}
+        {activeTab === 'ark' && (hasArk ? <ManageTab /> : <CreateTab onArkCreated={refetchArk} />)}
         {activeTab === 'activity' && <ActivityTab />}
       </div>
     </div>
