@@ -4,6 +4,42 @@ import { useAccount, useChainId } from 'wagmi';
 const API_BASE_URL = 'https://noah-backend.fly.dev';
 const CACHE_KEY_PREFIX = 'noah_activity_';
 const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+const ITEMS_PER_PAGE = 5;
+
+// Component to display token addresses with expand/collapse
+function TokenList({ tokens, maxVisible = 3 }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!tokens || tokens.length === 0) return null;
+
+  const visibleTokens = expanded ? tokens : tokens.slice(0, maxVisible);
+  const hiddenCount = tokens.length - maxVisible;
+
+  return (
+    <div className="mt-1.5">
+      <div className="flex flex-wrap gap-1">
+        {visibleTokens.map((token, idx) => (
+          <span
+            key={idx}
+            className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-xs font-mono text-slate-600"
+            title={token}
+          >
+            {token.slice(0, 6)}...{token.slice(-4)}
+          </span>
+        ))}
+      </div>
+      {hiddenCount > 0 && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-1 mt-1 text-xs text-indigo-500 hover:text-indigo-600"
+        >
+          <span className={`transition-transform ${expanded ? 'rotate-180' : ''}`}>▼</span>
+          {expanded ? 'Show less' : `+${hiddenCount} more`}
+        </button>
+      )}
+    </div>
+  );
+}
 
 const eventIcons = {
   ArkBuilt: '🚢',
@@ -107,28 +143,38 @@ function getEventDetails(event) {
   switch (event.event_type) {
     case 'ArkBuilt':
       const beneficiary = event.event_data.beneficiary;
-      const tokens = event.event_data.tokens || [];
-      const tokenCount = tokens.length;
+      const builtTokens = event.event_data.tokens || [];
+      const tokenCount = builtTokens.length;
       const beneficiaryStr = beneficiary ? `${beneficiary.slice(0, 6)}...${beneficiary.slice(-4)}` : 'Unknown';
-      if (tokenCount > 0) {
-        return `Beneficiary: ${beneficiaryStr} • ${tokenCount} token${tokenCount !== 1 ? 's' : ''} protected`;
-      }
-      return `Beneficiary: ${beneficiaryStr}`;
+      return {
+        text: tokenCount > 0
+          ? `Beneficiary: ${beneficiaryStr} • ${tokenCount} token${tokenCount !== 1 ? 's' : ''} protected`
+          : `Beneficiary: ${beneficiaryStr}`,
+        tokens: builtTokens,
+      };
     case 'ArkPinged':
-      return `Deadline extended`;
+      return { text: 'Deadline extended', tokens: null };
     case 'PassengersAdded':
-      const count = event.event_data.new_passengers?.length || 0;
-      return `Added ${count} token${count !== 1 ? 's' : ''} to protected list`;
+      const addedTokens = event.event_data.new_passengers || [];
+      const addCount = addedTokens.length;
+      return {
+        text: `Added ${addCount} token${addCount !== 1 ? 's' : ''} to protected list`,
+        tokens: addedTokens,
+      };
     case 'PassengerRemoved':
-      return `Removed ${event.event_data.passenger?.slice(0, 6)}...${event.event_data.passenger?.slice(-4)}`;
+      const removedToken = event.event_data.passenger;
+      return {
+        text: 'Removed token from protected list',
+        tokens: removedToken ? [removedToken] : null,
+      };
     case 'FloodTriggered':
-      return `Assets transferred to beneficiary`;
+      return { text: 'Assets transferred to beneficiary', tokens: null };
     case 'DeadlineUpdated':
-      return `Duration updated`;
+      return { text: 'Duration updated', tokens: null };
     case 'ArkDestroyed':
-      return `Ark has been destroyed`;
+      return { text: 'Ark has been destroyed', tokens: null };
     default:
-      return '';
+      return { text: '', tokens: null };
   }
 }
 
@@ -139,6 +185,7 @@ function ActivityTab() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchActivity = useCallback(async (showLoadingState = true, currentActivity = []) => {
     if (!address) {
@@ -197,11 +244,17 @@ function ActivityTab() {
       if (e.detail.address?.toLowerCase() === address?.toLowerCase() &&
           e.detail.chainId === chainId) {
         setActivity(e.detail.data);
+        setCurrentPage(1); // Reset pagination on new data
       }
     }
 
     window.addEventListener('noah_activity_updated', handleActivityUpdate);
     return () => window.removeEventListener('noah_activity_updated', handleActivityUpdate);
+  }, [address, chainId]);
+
+  // Reset pagination when address or chain changes
+  useEffect(() => {
+    setCurrentPage(1);
   }, [address, chainId]);
 
   const explorerUrl = chainExplorers[chainId];
@@ -259,6 +312,14 @@ function ActivityTab() {
     );
   }
 
+  const totalPages = Math.ceil(activity.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const visibleActivity = activity.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -274,47 +335,86 @@ function ActivityTab() {
       </div>
 
       <div className="space-y-3">
-        {activity.map((event, index) => (
-          <div key={event.id} className="relative">
-            {/* Timeline connector */}
-            {index < activity.length - 1 && (
-              <div className="absolute left-4 top-10 bottom-0 w-px bg-slate-200 -mb-3"></div>
-            )}
+        {visibleActivity.map((event, index) => {
+          const details = getEventDetails(event);
+          return (
+            <div key={event.id} className="relative">
+              {/* Timeline connector */}
+              {index < visibleActivity.length - 1 && (
+                <div className="absolute left-4 top-10 bottom-0 w-px bg-slate-200 -mb-3"></div>
+              )}
 
-            <div className="flex gap-3">
-              {/* Icon */}
-              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-base flex-shrink-0">
-                {eventIcons[event.event_type] || '📝'}
-              </div>
+              <div className="flex gap-3">
+                {/* Icon */}
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-base flex-shrink-0">
+                  {eventIcons[event.event_type] || '📝'}
+                </div>
 
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-medium text-slate-700">
-                    {eventLabels[event.event_type] || event.event_type}
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-sm font-medium text-slate-700">
+                      {eventLabels[event.event_type] || event.event_type}
+                    </div>
+                    <div className="text-xs text-slate-400 flex-shrink-0">
+                      {formatTimestamp(event.timestamp)}
+                    </div>
                   </div>
-                  <div className="text-xs text-slate-400 flex-shrink-0">
-                    {formatTimestamp(event.timestamp)}
+                  <div className="text-xs text-slate-500 mt-0.5">
+                    {details.text}
                   </div>
+                  {details.tokens && details.tokens.length > 0 && (
+                    <TokenList tokens={details.tokens} maxVisible={3} />
+                  )}
+                  {explorerUrl && event.tx_hash && (
+                    <a
+                      href={`${explorerUrl}/tx/${event.tx_hash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-indigo-500 hover:text-indigo-600 font-mono mt-1 inline-block"
+                    >
+                      {event.tx_hash.slice(0, 10)}...{event.tx_hash.slice(-8)}
+                    </a>
+                  )}
                 </div>
-                <div className="text-xs text-slate-500 mt-0.5">
-                  {getEventDetails(event)}
-                </div>
-                {explorerUrl && event.tx_hash && (
-                  <a
-                    href={`${explorerUrl}/tx/${event.tx_hash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-indigo-500 hover:text-indigo-600 font-mono mt-1 inline-block"
-                  >
-                    {event.tx_hash.slice(0, 10)}...{event.tx_hash.slice(-8)}
-                  </a>
-                )}
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-1 pt-2">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-2 py-1 text-sm text-slate-500 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            ←
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <button
+              key={page}
+              onClick={() => handlePageChange(page)}
+              className={`w-7 h-7 text-sm rounded-md transition-colors ${
+                page === currentPage
+                  ? 'bg-indigo-500 text-white'
+                  : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="px-2 py-1 text-sm text-slate-500 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            →
+          </button>
+        </div>
+      )}
     </div>
   );
 }
