@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, usePublicClient, useChainId } from 'wagmi';
 import { formatUnits } from 'viem';
 import { NOAH_ADDRESS, NOAH_ABI, MOCK_USDC_ADDRESS, ERC20_ABI } from '../../contracts/noah';
+import { refreshActivity } from './ActivityTab';
 
 function formatTimeRemaining(deadlineTimestamp) {
   const now = Date.now();
@@ -36,6 +37,7 @@ const API_BASE_URL = 'https://noah-backend.fly.dev';
 
 function ManageTab() {
   const { address, isConnected } = useAccount();
+  const chainId = useChainId();
   const publicClient = usePublicClient();
   const [tokenBalances, setTokenBalances] = useState({});
   const [isEditingDuration, setIsEditingDuration] = useState(false);
@@ -131,6 +133,8 @@ function ManageTab() {
   useEffect(() => {
     if (isPingSuccess || isUpdateSuccess || isRemoveSuccess || isAddSuccess || isDestroySuccess) {
       refetch();
+      // Refresh activity cache after any transaction
+      refreshActivity(address, chainId);
       if (isUpdateSuccess) {
         setIsEditingDuration(false);
         setNewDurationMinutes('');
@@ -151,7 +155,7 @@ function ManageTab() {
         setShowDestroyPendingModal(true);
       }
     }
-  }, [isPingSuccess, isUpdateSuccess, isRemoveSuccess, isAddSuccess, isDestroySuccess, refetch]);
+  }, [isPingSuccess, isUpdateSuccess, isRemoveSuccess, isAddSuccess, isDestroySuccess, refetch, address, chainId]);
 
   // Poll API to check if ark has been destroyed
   useEffect(() => {
@@ -162,10 +166,12 @@ function ManageTab() {
         const response = await fetch(`${API_BASE_URL}/api/arks/${address}`);
         const data = await response.json();
 
-        // If no arks found for this address, destruction is complete
-        if (!data || data.length === 0 || (Array.isArray(data) && data.every(ark => ark.chain_id !== 11155111))) {
+        // If no arks found for this address on current chain, destruction is complete
+        if (!data || data.length === 0 || (Array.isArray(data) && data.every(ark => ark.chain_id !== chainId))) {
           setShowDestroyPendingModal(false);
           setDestroyConfirmedOnChain(false);
+          // Refresh activity cache
+          refreshActivity(address, chainId);
           refetch(); // Refresh the local state
           clearInterval(pollInterval);
         }
@@ -175,7 +181,7 @@ function ManageTab() {
     }, 3000); // Poll every 3 seconds
 
     return () => clearInterval(pollInterval);
-  }, [destroyConfirmedOnChain, address, refetch]);
+  }, [destroyConfirmedOnChain, address, chainId, refetch]);
 
   const handlePing = () => {
     writePing({

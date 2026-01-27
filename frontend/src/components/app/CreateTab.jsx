@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient, useChainId } from 'wagmi';
 import { formatUnits } from 'viem';
 import { NOAH_ADDRESS, NOAH_ABI, MOCK_USDC_ADDRESS, ERC20_ABI } from '../../contracts/noah';
+import { refreshActivity } from './ActivityTab';
 
 const API_BASE_URL = 'https://noah-backend.fly.dev';
 
@@ -15,6 +16,7 @@ const durationOptions = [
 
 function CreateTab({ onArkCreated }) {
   const { address, isConnected } = useAccount();
+  const chainId = useChainId();
   const publicClient = usePublicClient();
   const [beneficiary, setBeneficiary] = useState('');
   const [duration, setDuration] = useState(2592000);
@@ -89,11 +91,13 @@ function CreateTab({ onArkCreated }) {
         const response = await fetch(`${API_BASE_URL}/api/arks/${address}`);
         const data = await response.json();
 
-        // If ark found for this address on Sepolia, creation is complete
-        if (data && Array.isArray(data) && data.some(ark => ark.chain_id === 11155111)) {
+        // If ark found for this address on current chain, creation is complete
+        if (data && Array.isArray(data) && data.some(ark => ark.chain_id === chainId)) {
           setShowCreationPendingModal(false);
           setCreationConfirmedOnChain(false);
           clearInterval(pollInterval);
+          // Refresh activity cache
+          refreshActivity(address, chainId);
           onArkCreated?.(); // Trigger parent to refetch and show ManageTab
         }
       } catch (err) {
@@ -102,7 +106,7 @@ function CreateTab({ onArkCreated }) {
     }, 3000); // Poll every 3 seconds
 
     return () => clearInterval(pollInterval);
-  }, [creationConfirmedOnChain, address, onArkCreated]);
+  }, [creationConfirmedOnChain, address, chainId, onArkCreated]);
 
   const toggleToken = (addr) => {
     setSelectedTokens((prev) =>

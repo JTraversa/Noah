@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAccount, useChainId } from 'wagmi';
 
 const API_BASE_URL = 'https://noah-backend.fly.dev';
+const CACHE_KEY_PREFIX = 'noah_activity_';
+const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
 const eventIcons = {
   ArkBuilt: '🚢',
@@ -28,6 +30,60 @@ const chainExplorers = {
   42161: 'https://arbiscan.io',
   31337: null, // Local chain
 };
+
+// Helper to get cache key for address + chain
+function getCacheKey(address, chainId) {
+  return `${CACHE_KEY_PREFIX}${address?.toLowerCase()}_${chainId}`;
+}
+
+// Get cached activity from localStorage
+function getCachedActivity(address, chainId) {
+  try {
+    const key = getCacheKey(address, chainId);
+    const cached = localStorage.getItem(key);
+    if (!cached) return null;
+
+    const { data, timestamp } = JSON.parse(cached);
+    return { data, timestamp, isStale: Date.now() - timestamp > CACHE_DURATION_MS };
+  } catch {
+    return null;
+  }
+}
+
+// Save activity to localStorage
+function setCachedActivity(address, chainId, data) {
+  try {
+    const key = getCacheKey(address, chainId);
+    localStorage.setItem(key, JSON.stringify({
+      data,
+      timestamp: Date.now()
+    }));
+  } catch (err) {
+    console.warn('Failed to cache activity:', err);
+  }
+}
+
+// Export function to refresh activity (call after transactions)
+export async function refreshActivity(address, chainId) {
+  if (!address) return null;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/activity/${address}?chain_id=${chainId}`);
+    if (!response.ok) throw new Error('Failed to fetch activity');
+    const data = await response.json();
+    setCachedActivity(address, chainId, data);
+
+    // Dispatch custom event so ActivityTab can update
+    window.dispatchEvent(new CustomEvent('noah_activity_updated', {
+      detail: { address, chainId, data }
+    }));
+
+    return data;
+  } catch (err) {
+    console.error('Error refreshing activity:', err);
+    return null;
+  }
+}
 
 function formatTimestamp(timestamp) {
   const now = Date.now();
@@ -74,34 +130,73 @@ function ActivityTab() {
   const chainId = useChainId();
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    async function fetchActivity() {
-      if (!address) {
-        setActivity([]);
-        setLoading(false);
-        return;
-      }
+  const fetchActivity = useCallback(async (showLoadingState = true) => {
+    if (!address) {
+      setActivity([]);
+      setLoading(false);
+      return;
+    }
 
-      try {
-        setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api/activity/${address}?chain_id=${chainId}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch activity');
-        }
-        const data = await response.json();
-        setActivity(data);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching activity:', err);
+    try {
+      if (showLoadingState) setRefreshing(true);
+      const response = await fetch(`${API_BASE_URL}/api/activity/${address}?chain_id=${chainId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch activity');
+      }
+      const data = await response.json();
+      setActivity(data);
+      setCachedActivity(address, chainId, data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching activity:', err);
+      // Only show error if we don't have cached data
+      if (activity.length === 0) {
         setError(err.message);
-      } finally {
-        setLoading(false);
+      }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [address, chainId, activity.length]);
+
+  // Load cached data on mount, then refresh in background
+  useEffect(() => {
+    if (!address) {
+      setActivity([]);
+      setLoading(false);
+      return;
+    }
+
+    // Try to load from cache first
+    const cached = getCachedActivity(address, chainId);
+    if (cached?.data) {
+      setActivity(cached.data);
+      setLoading(false);
+
+      // Refresh in background if stale
+      if (cached.isStale) {
+        fetchActivity(false);
+      }
+    } else {
+      // No cache, fetch fresh
+      fetchActivity(true);
+    }
+  }, [address, chainId]);
+
+  // Listen for activity update events (triggered after transactions)
+  useEffect(() => {
+    function handleActivityUpdate(e) {
+      if (e.detail.address?.toLowerCase() === address?.toLowerCase() &&
+          e.detail.chainId === chainId) {
+        setActivity(e.detail.data);
       }
     }
 
-    fetchActivity();
+    window.addEventListener('noah_activity_updated', handleActivityUpdate);
+    return () => window.removeEventListener('noah_activity_updated', handleActivityUpdate);
   }, [address, chainId]);
 
   const explorerUrl = chainExplorers[chainId];
