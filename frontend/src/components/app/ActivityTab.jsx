@@ -133,7 +133,7 @@ function ActivityTab() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchActivity = useCallback(async (showLoadingState = true) => {
+  const fetchActivity = useCallback(async (showLoadingState = true, currentActivity = []) => {
     if (!address) {
       setActivity([]);
       setLoading(false);
@@ -153,16 +153,16 @@ function ActivityTab() {
     } catch (err) {
       console.error('Error fetching activity:', err);
       // Only show error if we don't have cached data
-      if (activity.length === 0) {
+      if (currentActivity.length === 0) {
         setError(err.message);
       }
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [address, chainId, activity.length]);
+  }, [address, chainId]);
 
-  // Load cached data on mount, then refresh in background
+  // Load cached data immediately for fast display, then ALWAYS fetch fresh data
   useEffect(() => {
     if (!address) {
       setActivity([]);
@@ -170,21 +170,19 @@ function ActivityTab() {
       return;
     }
 
-    // Try to load from cache first
+    // Try to load from cache first for immediate display (lazy load pattern)
     const cached = getCachedActivity(address, chainId);
     if (cached?.data) {
       setActivity(cached.data);
       setLoading(false);
-
-      // Refresh in background if stale
-      if (cached.isStale) {
-        fetchActivity(false);
-      }
+      // Always fetch fresh data in background on page load/refresh
+      fetchActivity(false, cached.data);
     } else {
-      // No cache, fetch fresh
-      fetchActivity(true);
+      // No cache, show loading state and fetch fresh
+      setLoading(true);
+      fetchActivity(true, []);
     }
-  }, [address, chainId]);
+  }, [address, chainId, fetchActivity]);
 
   // Listen for activity update events (triggered after transactions)
   useEffect(() => {
@@ -200,6 +198,10 @@ function ActivityTab() {
   }, [address, chainId]);
 
   const explorerUrl = chainExplorers[chainId];
+
+  const handleManualRefresh = () => {
+    fetchActivity(true, activity);
+  };
 
   if (!isConnected) {
     return (
@@ -252,7 +254,17 @@ function ActivityTab() {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-slate-700">Recent Activity</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-slate-700">Recent Activity</h3>
+        <button
+          onClick={handleManualRefresh}
+          disabled={refreshing}
+          className="text-xs text-indigo-500 hover:text-indigo-600 disabled:opacity-50 flex items-center gap-1"
+        >
+          <span className={refreshing ? 'animate-spin' : ''}>↻</span>
+          {refreshing ? 'Refreshing...' : 'Refresh'}
+        </button>
+      </div>
 
       <div className="space-y-3">
         {activity.map((event, index) => (
