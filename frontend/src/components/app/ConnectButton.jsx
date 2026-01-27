@@ -56,17 +56,21 @@ function ConnectButton() {
                   <button
                     onClick={openChainModal}
                     type="button"
-                    className="flex items-center gap-1.5 glass-btn px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium text-slate-600 shadow-lg shadow-indigo-400/40"
+                    className="flex items-center gap-1 glass-btn px-2 md:px-3 py-1.5 md:py-2 rounded-full shadow-lg shadow-indigo-400/40"
+                    title={chain.name}
                   >
-                    {chain.hasIcon && chain.iconUrl && (
+                    {chain.hasIcon && chain.iconUrl ? (
                       <img
                         src={chain.iconUrl}
                         alt={chain.name ?? 'Chain'}
-                        className="w-4 h-4 rounded-full"
+                        className="w-5 h-5 rounded-full"
                       />
+                    ) : (
+                      <span className="text-xs font-bold text-slate-600">
+                        {chain.name?.charAt(0) || '?'}
+                      </span>
                     )}
-                    <span className="hidden sm:inline">{chain.name}</span>
-                    <svg className="w-3 h-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
