@@ -39,6 +39,9 @@ function ManageTab() {
   const [newDurationMinutes, setNewDurationMinutes] = useState('');
   const [showAddTokenModal, setShowAddTokenModal] = useState(false);
   const [selectedTokensToAdd, setSelectedTokensToAdd] = useState([]);
+  const [customTokenAddress, setCustomTokenAddress] = useState('');
+  const [customTokenError, setCustomTokenError] = useState('');
+  const [customTokens, setCustomTokens] = useState([]);
 
   // Read ark data from contract
   const { data: arkData, isLoading, refetch } = useReadContract({
@@ -132,6 +135,9 @@ function ManageTab() {
       if (isAddSuccess) {
         setShowAddTokenModal(false);
         setSelectedTokensToAdd([]);
+        setCustomTokens([]);
+        setCustomTokenAddress('');
+        setCustomTokenError('');
       }
       if (isDestroySuccess) {
         setShowDestroyConfirm(false);
@@ -196,6 +202,44 @@ function ManageTab() {
       functionName: 'destroyArk',
       args: [],
     });
+  };
+
+  const isValidAddress = (addr) => {
+    return /^0x[a-fA-F0-9]{40}$/.test(addr);
+  };
+
+  const addCustomTokenToList = () => {
+    const trimmedAddress = customTokenAddress.trim();
+
+    if (!isValidAddress(trimmedAddress)) {
+      setCustomTokenError('Invalid address format');
+      return;
+    }
+
+    // Check if already in ark
+    if (ark?.tokens?.some(t => t.toLowerCase() === trimmedAddress.toLowerCase())) {
+      setCustomTokenError('Token already in your Ark');
+      return;
+    }
+
+    // Check if already in available tokens or custom tokens
+    if (availableTokens.some(t => t.address.toLowerCase() === trimmedAddress.toLowerCase()) ||
+        customTokens.some(t => t.address.toLowerCase() === trimmedAddress.toLowerCase())) {
+      setCustomTokenError('Token already in list');
+      return;
+    }
+
+    const newToken = {
+      address: trimmedAddress,
+      symbol: 'CUSTOM',
+      balance: '—',
+      isCustom: true,
+    };
+
+    setCustomTokens(prev => [...prev, newToken]);
+    setSelectedTokensToAdd(prev => [...prev, trimmedAddress]);
+    setCustomTokenAddress('');
+    setCustomTokenError('');
   };
 
   if (!isConnected) {
@@ -426,6 +470,9 @@ function ManageTab() {
             onClick={() => {
               setShowAddTokenModal(false);
               setSelectedTokensToAdd([]);
+              setCustomTokens([]);
+              setCustomTokenAddress('');
+              setCustomTokenError('');
             }}
           />
           <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 max-h-[80vh] overflow-y-auto">
@@ -435,6 +482,9 @@ function ManageTab() {
                 onClick={() => {
                   setShowAddTokenModal(false);
                   setSelectedTokensToAdd([]);
+                  setCustomTokens([]);
+                  setCustomTokenAddress('');
+                  setCustomTokenError('');
                 }}
                 className="text-slate-400 hover:text-slate-600"
               >
@@ -442,67 +492,132 @@ function ManageTab() {
               </button>
             </div>
 
-            {availableTokens.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-3xl mb-2">🎉</div>
-                <p className="text-sm text-slate-500">
-                  All your tokens are already protected!
-                </p>
-              </div>
-            ) : (
-              <>
-                <p className="text-sm text-slate-500 mb-4">
-                  Select tokens to add to your Ark:
-                </p>
-                <div className="space-y-2 mb-4">
-                  {availableTokens.map((token) => (
-                    <button
-                      key={token.address}
-                      type="button"
-                      onClick={() => toggleTokenToAdd(token.address)}
-                      className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
-                        selectedTokensToAdd.includes(token.address)
-                          ? 'bg-indigo-50 border-2 border-indigo-400'
-                          : 'bg-slate-50 border-2 border-transparent hover:bg-slate-100'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
-                          {token.symbol.charAt(0)}
-                        </div>
-                        <div className="text-left">
-                          <div className="text-sm font-medium text-slate-700">{token.symbol}</div>
-                          <div className="text-xs text-slate-400 font-mono">
-                            {token.address.slice(0, 6)}...{token.address.slice(-4)}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-sm text-slate-600">
-                          {parseFloat(token.balance).toLocaleString('en-US', { maximumFractionDigits: 2 })}
-                        </div>
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          selectedTokensToAdd.includes(token.address)
-                            ? 'bg-indigo-500 border-indigo-500'
-                            : 'border-slate-300'
-                        }`}>
-                          {selectedTokensToAdd.includes(token.address) && (
-                            <span className="text-white text-xs">✓</span>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+            <p className="text-sm text-slate-500 mb-4">
+              Select tokens to add to your Ark:
+            </p>
+            <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
+              {/* Available tokens from wallet */}
+              {availableTokens.map((token) => (
                 <button
-                  onClick={handleAddTokens}
-                  disabled={selectedTokensToAdd.length === 0 || isAdding || isAddConfirming}
-                  className="w-full px-4 py-3 rounded-xl bg-indigo-500 text-white font-medium hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  key={token.address}
+                  type="button"
+                  onClick={() => toggleTokenToAdd(token.address)}
+                  className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
+                    selectedTokensToAdd.includes(token.address)
+                      ? 'bg-indigo-50 border-2 border-indigo-400'
+                      : 'bg-slate-50 border-2 border-transparent hover:bg-slate-100'
+                  }`}
                 >
-                  {isAdding ? 'Confirm in Wallet...' : isAddConfirming ? 'Adding...' : `Add ${selectedTokensToAdd.length} Token${selectedTokensToAdd.length !== 1 ? 's' : ''}`}
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
+                      {token.symbol.charAt(0)}
+                    </div>
+                    <div className="text-left">
+                      <div className="text-sm font-medium text-slate-700">{token.symbol}</div>
+                      <div className="text-xs text-slate-400 font-mono">
+                        {token.address.slice(0, 6)}...{token.address.slice(-4)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-sm text-slate-600">
+                      {parseFloat(token.balance).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                      selectedTokensToAdd.includes(token.address)
+                        ? 'bg-indigo-500 border-indigo-500'
+                        : 'border-slate-300'
+                    }`}>
+                      {selectedTokensToAdd.includes(token.address) && (
+                        <span className="text-white text-xs">✓</span>
+                      )}
+                    </div>
+                  </div>
                 </button>
-              </>
-            )}
+              ))}
+
+              {/* Custom tokens */}
+              {customTokens.map((token) => (
+                <button
+                  key={token.address}
+                  type="button"
+                  onClick={() => toggleTokenToAdd(token.address)}
+                  className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
+                    selectedTokensToAdd.includes(token.address)
+                      ? 'bg-indigo-50 border-2 border-indigo-400'
+                      : 'bg-slate-50 border-2 border-transparent hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-purple-200 flex items-center justify-center text-xs font-bold text-purple-600">
+                      ?
+                    </div>
+                    <div className="text-left">
+                      <div className="text-sm font-medium text-slate-700">
+                        {token.symbol}
+                        <span className="ml-1 text-xs text-purple-500">(custom)</span>
+                      </div>
+                      <div className="text-xs text-slate-400 font-mono">
+                        {token.address.slice(0, 6)}...{token.address.slice(-4)}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                      selectedTokensToAdd.includes(token.address)
+                        ? 'bg-indigo-500 border-indigo-500'
+                        : 'border-slate-300'
+                    }`}>
+                      {selectedTokensToAdd.includes(token.address) && (
+                        <span className="text-white text-xs">✓</span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+
+              {/* Custom Token Input - as a list item */}
+              <div className={`w-full p-3 rounded-xl transition-all bg-slate-50 border-2 ${
+                customTokenAddress ? 'border-purple-300' : 'border-transparent'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-xs font-bold text-purple-400">
+                    +
+                  </div>
+                  <div className="flex-1 flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={customTokenAddress}
+                      onChange={(e) => {
+                        setCustomTokenAddress(e.target.value);
+                        setCustomTokenError('');
+                      }}
+                      placeholder="Add custom token address..."
+                      className="flex-1 px-2 py-1 rounded-lg bg-transparent border-none focus:outline-none text-sm font-mono text-slate-700 placeholder:text-slate-400"
+                    />
+                    {customTokenAddress && (
+                      <button
+                        type="button"
+                        onClick={addCustomTokenToList}
+                        className="px-3 py-1 rounded-lg bg-purple-500 text-white text-xs font-medium hover:bg-purple-600 transition-all"
+                      >
+                        Add
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {customTokenError && (
+                  <p className="text-xs text-red-500 mt-1 ml-11">{customTokenError}</p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={handleAddTokens}
+              disabled={selectedTokensToAdd.length === 0 || isAdding || isAddConfirming}
+              className="w-full px-4 py-3 rounded-xl bg-indigo-500 text-white font-medium hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {isAdding ? 'Confirm in Wallet...' : isAddConfirming ? 'Adding...' : `Add ${selectedTokensToAdd.length} Token${selectedTokensToAdd.length !== 1 ? 's' : ''}`}
+            </button>
           </div>
         </div>
       )}

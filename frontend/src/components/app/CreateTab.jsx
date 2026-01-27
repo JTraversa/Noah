@@ -19,6 +19,9 @@ function CreateTab() {
   const [customMinutes, setCustomMinutes] = useState('');
   const [selectedTokens, setSelectedTokens] = useState([]);
   const [tokens, setTokens] = useState([]);
+  const [customTokenAddress, setCustomTokenAddress] = useState('');
+  const [customTokenError, setCustomTokenError] = useState('');
+  const [isLoadingCustomToken, setIsLoadingCustomToken] = useState(false);
 
   // Read USDC balance
   const { data: usdcBalance } = useReadContract({
@@ -75,6 +78,46 @@ function CreateTab() {
   const selectAllTokens = () => {
     const eligibleTokens = tokens.filter((t) => t.usdValue > 1);
     setSelectedTokens(eligibleTokens.map((t) => t.address));
+  };
+
+  const isValidAddress = (addr) => {
+    return /^0x[a-fA-F0-9]{40}$/.test(addr);
+  };
+
+  const addCustomToken = async () => {
+    const trimmedAddress = customTokenAddress.trim();
+
+    if (!isValidAddress(trimmedAddress)) {
+      setCustomTokenError('Invalid address format');
+      return;
+    }
+
+    if (tokens.some(t => t.address.toLowerCase() === trimmedAddress.toLowerCase())) {
+      setCustomTokenError('Token already in list');
+      return;
+    }
+
+    setIsLoadingCustomToken(true);
+    setCustomTokenError('');
+
+    try {
+      // Add the token with placeholder data - balance will be fetched on-chain when needed
+      const newToken = {
+        address: trimmedAddress,
+        symbol: 'CUSTOM',
+        balance: '—',
+        usdValue: 0,
+        isCustom: true,
+      };
+
+      setTokens(prev => [...prev, newToken]);
+      setSelectedTokens(prev => [...prev, trimmedAddress]);
+      setCustomTokenAddress('');
+    } catch (err) {
+      setCustomTokenError('Failed to add token');
+    } finally {
+      setIsLoadingCustomToken(false);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -232,53 +275,90 @@ function CreateTab() {
           </button>
         </div>
         <div className="space-y-2 max-h-64 overflow-y-auto">
-          {tokens.length === 0 ? (
-            <div className="text-center py-4 text-sm text-slate-400">
-              Loading tokens...
-            </div>
-          ) : (
-            tokens.map((token) => (
-              <button
-                key={token.address}
-                type="button"
-                onClick={() => toggleToken(token.address)}
-                className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
-                  selectedTokens.includes(token.address)
-                    ? 'bg-indigo-50 border-2 border-indigo-400'
-                    : 'bg-slate-50/50 border-2 border-transparent hover:bg-slate-100'
-                } ${token.usdValue <= 1 ? 'opacity-50' : ''}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
-                    {token.symbol.charAt(0)}
+          {tokens.map((token) => (
+            <button
+              key={token.address}
+              type="button"
+              onClick={() => toggleToken(token.address)}
+              className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
+                selectedTokens.includes(token.address)
+                  ? 'bg-indigo-50 border-2 border-indigo-400'
+                  : 'bg-slate-50/50 border-2 border-transparent hover:bg-slate-100'
+              } ${token.usdValue <= 1 && !token.isCustom ? 'opacity-50' : ''}`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                  token.isCustom ? 'bg-purple-200 text-purple-600' : 'bg-slate-200 text-slate-500'
+                }`}>
+                  {token.isCustom ? '?' : token.symbol.charAt(0)}
+                </div>
+                <div className="text-left">
+                  <div className="text-sm font-medium text-slate-700">
+                    {token.symbol}
+                    {token.isCustom && <span className="ml-1 text-xs text-purple-500">(custom)</span>}
                   </div>
-                  <div className="text-left">
-                    <div className="text-sm font-medium text-slate-700">{token.symbol}</div>
-                    <div className="text-xs text-slate-400 font-mono">
-                      {token.address.slice(0, 6)}...{token.address.slice(-4)}
-                    </div>
+                  <div className="text-xs text-slate-400 font-mono">
+                    {token.address.slice(0, 6)}...{token.address.slice(-4)}
                   </div>
                 </div>
-                <div className="text-right flex items-center gap-3">
-                  <div>
-                    <div className="text-sm font-medium text-slate-700">{token.balance}</div>
+              </div>
+              <div className="text-right flex items-center gap-3">
+                <div>
+                  <div className="text-sm font-medium text-slate-700">{token.balance}</div>
+                  {!token.isCustom && (
                     <div className="text-xs text-slate-400">
                       ${token.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
-                  </div>
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                    selectedTokens.includes(token.address)
-                      ? 'bg-indigo-500 border-indigo-500'
-                      : 'border-slate-300'
-                  }`}>
-                    {selectedTokens.includes(token.address) && (
-                      <span className="text-white text-xs">✓</span>
-                    )}
-                  </div>
+                  )}
                 </div>
-              </button>
-            ))
-          )}
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                  selectedTokens.includes(token.address)
+                    ? 'bg-indigo-500 border-indigo-500'
+                    : 'border-slate-300'
+                }`}>
+                  {selectedTokens.includes(token.address) && (
+                    <span className="text-white text-xs">✓</span>
+                  )}
+                </div>
+              </div>
+            </button>
+          ))}
+
+          {/* Custom Token Input - as a list item */}
+          <div className={`w-full p-3 rounded-xl transition-all bg-slate-50/50 border-2 ${
+            customTokenAddress ? 'border-purple-300' : 'border-transparent'
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-xs font-bold text-purple-400">
+                +
+              </div>
+              <div className="flex-1 flex items-center gap-2">
+                <input
+                  type="text"
+                  value={customTokenAddress}
+                  onChange={(e) => {
+                    setCustomTokenAddress(e.target.value);
+                    setCustomTokenError('');
+                  }}
+                  placeholder="Add custom token address..."
+                  className="flex-1 px-2 py-1 rounded-lg bg-transparent border-none focus:outline-none text-sm font-mono text-slate-700 placeholder:text-slate-400"
+                />
+                {customTokenAddress && (
+                  <button
+                    type="button"
+                    onClick={addCustomToken}
+                    disabled={isLoadingCustomToken}
+                    className="px-3 py-1 rounded-lg bg-purple-500 text-white text-xs font-medium hover:bg-purple-600 disabled:opacity-50 transition-all"
+                  >
+                    {isLoadingCustomToken ? '...' : 'Add'}
+                  </button>
+                )}
+              </div>
+            </div>
+            {customTokenError && (
+              <p className="text-xs text-red-500 mt-1 ml-11">{customTokenError}</p>
+            )}
+          </div>
         </div>
         <p className="text-xs text-slate-400 mt-1">
           {selectedTokens.length} token{selectedTokens.length !== 1 ? 's' : ''} selected
