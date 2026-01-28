@@ -815,9 +815,12 @@ function ManageTab() {
           <h3 className="text-sm font-semibold text-slate-700">Protected Tokens ({ark.tokens.length})</h3>
           <button
             onClick={() => setShowAddTokenModal(true)}
-            className="text-xs text-indigo-500 hover:text-indigo-600"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-500 hover:text-white bg-indigo-50 hover:bg-gradient-to-r hover:from-indigo-500 hover:to-purple-500 border border-indigo-200 hover:border-transparent rounded-lg transition-all transform hover:scale-105 active:scale-100 hover:shadow-md hover:shadow-indigo-500/20"
           >
-            + Add Token
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Add Token
           </button>
         </div>
         <div className="space-y-2">
