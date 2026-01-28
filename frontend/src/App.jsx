@@ -7,6 +7,7 @@ import HowItWorks from './components/HowItWorks';
 import Stats from './components/Stats';
 import Footer from './components/Footer';
 import AboutPage from './components/about/AboutPage';
+import BrandKitPage from './components/about/BrandKitPage';
 
 // Lazy load app section - wagmi only loads when user visits /app
 const AppWithWagmi = lazy(() => import('./components/app/AppWithWagmi'));
@@ -31,6 +32,14 @@ function AboutPageWrapper() {
   return (
     <main className="relative z-10 flex-1 py-8 overflow-auto">
       <AboutPage />
+    </main>
+  );
+}
+
+function BrandKitPageWrapper() {
+  return (
+    <main className="relative z-10 flex-1 py-8 overflow-auto">
+      <BrandKitPage />
     </main>
   );
 }
@@ -66,6 +75,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/about" element={<AboutPageWrapper />} />
+        <Route path="/brand-kit" element={<BrandKitPageWrapper />} />
         <Route path="/app" element={<Suspense fallback={<AppLoadingFallback />}><AppWithWagmi /></Suspense>} />
       </Routes>
 
