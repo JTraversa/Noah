@@ -632,28 +632,46 @@ function ManageTab() {
   return (
     <div className="space-y-6">
       {/* Status Card */}
-      <div className={`rounded-xl p-4 ${timeRemaining.urgent ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'}`}>
-        <div className="flex items-center justify-between">
+      <div className={`rounded-2xl p-5 ${timeRemaining.urgent ? 'bg-gradient-to-br from-red-50 to-orange-50 border border-red-200' : 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200'}`}>
+        <div className="flex items-center justify-between gap-4">
           <div>
             <div className="text-xs text-slate-500 mb-1">Time Until Deadline</div>
-            <div className={`text-lg font-bold ${timeRemaining.urgent ? 'text-red-600' : 'text-green-600'}`}>
+            <div className={`text-xl font-bold ${timeRemaining.urgent ? 'text-red-600' : 'text-green-600'}`}>
               {timeRemaining.text}
             </div>
+            {timeRemaining.urgent && (
+              <p className="text-xs text-red-500 mt-1">Ping soon to extend your deadline</p>
+            )}
           </div>
           <button
             onClick={handlePing}
             disabled={isPinging || isPingConfirming}
-            className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all ${
+            className={`group relative px-6 py-3.5 rounded-2xl font-semibold text-sm transition-all transform hover:scale-105 active:scale-100 ${
               timeRemaining.urgent
-                ? 'bg-red-500 hover:bg-red-600 text-white'
-                : 'bg-green-500 hover:bg-green-600 text-white'
-            } disabled:opacity-50`}
+                ? 'bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white shadow-lg shadow-red-500/30'
+                : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/30'
+            } disabled:opacity-50 disabled:transform-none disabled:shadow-none`}
           >
-            {isPinging ? 'Confirm in Wallet...' : isPingConfirming ? 'Pinging...' : 'Ping Ark'}
+            <span className="flex items-center gap-2">
+              {isPinging || isPingConfirming ? (
+                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z" />
+                </svg>
+              )}
+              {isPinging ? 'Confirm in Wallet...' : isPingConfirming ? 'Pinging...' : 'Ping Ark'}
+            </span>
           </button>
         </div>
         {isPingSuccess && (
-          <div className="mt-2 text-xs text-green-600">
+          <div className="mt-3 text-sm text-green-600 bg-green-100 rounded-lg px-3 py-2 flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
             Ark pinged successfully! Deadline extended.
           </div>
         )}
@@ -741,7 +759,7 @@ function ManageTab() {
         </div>
         <div className="space-y-2">
           {ark.tokens.length === 0 ? (
-            <div className="text-center py-4 text-sm text-slate-400">
+            <div className="text-center py-6 text-sm text-slate-400 bg-slate-50/50 rounded-xl">
               No tokens protected yet.
             </div>
           ) : (
@@ -750,24 +768,40 @@ function ManageTab() {
               return (
                 <div
                   key={tokenAddress}
-                  className={`flex items-center justify-between p-3 bg-slate-50/50 rounded-xl ${isBeingRemoved ? 'opacity-50' : ''}`}
+                  className={`group flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-slate-100/50 rounded-xl border border-slate-100 hover:border-slate-200 transition-all ${isBeingRemoved ? 'opacity-60 scale-98' : ''}`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-500">
-                      T
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-sm font-bold text-indigo-500 shadow-sm">
+                      {tokenAddress.slice(2, 4).toUpperCase()}
                     </div>
                     <div>
-                      <div className="text-xs text-slate-400 font-mono">
+                      <div className="text-sm font-medium text-slate-700 font-mono">
                         {tokenAddress.slice(0, 6)}...{tokenAddress.slice(-4)}
                       </div>
+                      <div className="text-xs text-slate-400">Protected Token</div>
                     </div>
                   </div>
                   <button
                     onClick={() => handleRemoveToken(tokenAddress)}
                     disabled={isRemoving || isRemoveConfirming}
-                    className="px-3 py-1 text-xs font-medium text-red-500 hover:text-white hover:bg-red-500 border border-red-300 hover:border-red-500 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-red-500 hover:text-white bg-red-50 hover:bg-gradient-to-r hover:from-red-500 hover:to-orange-500 border border-red-200 hover:border-transparent rounded-xl transition-all transform hover:scale-105 active:scale-100 hover:shadow-md hover:shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:bg-red-50 disabled:hover:text-red-500"
                   >
-                    {isBeingRemoved ? 'Removing...' : 'Remove'}
+                    {isBeingRemoved ? (
+                      <>
+                        <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Removing...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Remove
+                      </>
+                    )}
                   </button>
                 </div>
               );

@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAccount, useChainId } from 'wagmi';
+import { useAccount, useChainId, usePublicClient } from 'wagmi';
+import { ERC20_ABI } from '../../contracts/noah';
 
 const API_BASE_URL = 'https://noah-backend.fly.dev';
+
+// Cache for token symbols (persisted in memory during session)
+const tokenSymbolCache = {};
 const CACHE_KEY_PREFIX = 'noah_activity_';
 const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 const ITEMS_PER_PAGE = 5;
 
 // Component to display token addresses with expand/collapse
-function TokenList({ tokens, maxVisible = 3 }) {
+function TokenList({ tokens, tokenSymbols, maxVisible = 3 }) {
   const [expanded, setExpanded] = useState(false);
 
   if (!tokens || tokens.length === 0) return null;
@@ -18,15 +22,25 @@ function TokenList({ tokens, maxVisible = 3 }) {
   return (
     <div className="mt-1.5">
       <div className="flex flex-wrap gap-1">
-        {visibleTokens.map((token, idx) => (
-          <span
-            key={idx}
-            className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-xs font-mono text-slate-600"
-            title={token}
-          >
-            {token.slice(0, 6)}...{token.slice(-4)}
-          </span>
-        ))}
+        {visibleTokens.map((token, idx) => {
+          const symbol = tokenSymbols[token.toLowerCase()];
+          return (
+            <span
+              key={idx}
+              className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-xs text-slate-600"
+              title={token}
+            >
+              {symbol ? (
+                <>
+                  <span className="font-medium">{symbol}</span>
+                  <span className="text-slate-400 font-mono ml-1">({token.slice(0, 6)}...{token.slice(-4)})</span>
+                </>
+              ) : (
+                <span className="font-mono">{token.slice(0, 6)}...{token.slice(-4)}</span>
+              )}
+            </span>
+          );
+        })}
       </div>
       {hiddenCount > 0 && (
         <button
@@ -182,11 +196,13 @@ function getEventDetails(event) {
 function ActivityTab() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
+  const publicClient = usePublicClient();
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [tokenSymbols, setTokenSymbols] = useState({});
 
   const fetchActivity = useCallback(async (showLoadingState = true, currentActivity = []) => {
     if (!address) {
@@ -257,6 +273,55 @@ function ActivityTab() {
   useEffect(() => {
     setCurrentPage(1);
   }, [address, chainId]);
+
+  // Fetch token symbols for all tokens in activity
+  useEffect(() => {
+    if (!publicClient || activity.length === 0) return;
+
+    // Collect all unique token addresses from activity
+    const allTokens = new Set();
+    activity.forEach(event => {
+      const details = getEventDetails(event);
+      if (details.tokens) {
+        details.tokens.forEach(t => allTokens.add(t.toLowerCase()));
+      }
+    });
+
+    // Filter out tokens we already have cached
+    const tokensToFetch = [...allTokens].filter(t => !tokenSymbolCache[t]);
+
+    if (tokensToFetch.length === 0) {
+      // All tokens already cached, just update state
+      setTokenSymbols({ ...tokenSymbolCache });
+      return;
+    }
+
+    // Fetch symbols for new tokens
+    const fetchSymbols = async () => {
+      const newSymbols = { ...tokenSymbolCache };
+
+      await Promise.all(tokensToFetch.map(async (tokenAddr) => {
+        try {
+          const symbol = await publicClient.readContract({
+            address: tokenAddr,
+            abi: ERC20_ABI,
+            functionName: 'symbol',
+          });
+          newSymbols[tokenAddr] = symbol;
+          tokenSymbolCache[tokenAddr] = symbol;
+        } catch (err) {
+          // Token might not have symbol function, skip it
+          console.warn(`Failed to fetch symbol for ${tokenAddr}:`, err.message);
+          newSymbols[tokenAddr] = null;
+          tokenSymbolCache[tokenAddr] = null;
+        }
+      }));
+
+      setTokenSymbols(newSymbols);
+    };
+
+    fetchSymbols();
+  }, [activity, publicClient]);
 
   const explorerUrl = chainExplorers[chainId];
 
@@ -365,7 +430,7 @@ function ActivityTab() {
                     {details.text}
                   </div>
                   {details.tokens && details.tokens.length > 0 && (
-                    <TokenList tokens={details.tokens} maxVisible={3} />
+                    <TokenList tokens={details.tokens} tokenSymbols={tokenSymbols} maxVisible={3} />
                   )}
                   {explorerUrl && event.tx_hash && (
                     <a
