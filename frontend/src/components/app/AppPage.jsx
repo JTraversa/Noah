@@ -60,9 +60,11 @@ function AppPage() {
       </div>
 
       {/* Tab Content */}
-      <div className="glass rounded-2xl p-4 md:p-6">
-        {activeTab === 'ark' && (hasArk ? <ManageTab /> : <CreateTab onArkCreated={refetchArk} />)}
-        {activeTab === 'activity' && <ActivityTab />}
+      <div className="glass rounded-2xl p-4 md:p-6 overflow-hidden">
+        <div key={activeTab} className="tab-content-enter">
+          {activeTab === 'ark' && (hasArk ? <ManageTab /> : <CreateTab onArkCreated={refetchArk} />)}
+          {activeTab === 'activity' && <ActivityTab />}
+        </div>
       </div>
     </div>
   );

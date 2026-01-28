@@ -460,7 +460,7 @@ function ActivityTab() {
         </button>
       </div>
 
-      <div className="space-y-3">
+      <div key={currentPage} className="space-y-3 tab-content-enter">
         {visibleActivity.map((event, index) => {
           const details = getEventDetails(event);
           const colorClass = eventColors[event.event_type] || 'from-slate-400 to-slate-500';

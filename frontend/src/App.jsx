@@ -9,6 +9,16 @@ import Footer from './components/Footer';
 import AboutPage from './components/about/AboutPage';
 import BrandKitPage from './components/about/BrandKitPage';
 
+// Animated page wrapper
+function AnimatedPage({ children }) {
+  const location = useLocation();
+  return (
+    <div key={location.pathname} className="page-transition enter">
+      {children}
+    </div>
+  );
+}
+
 // Lazy load app section - wagmi only loads when user visits /app
 const AppWithWagmi = lazy(() => import('./components/app/AppWithWagmi'));
 
@@ -120,12 +130,14 @@ function App() {
 
       <Header />
 
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/about" element={<AboutPageWrapper />} />
-        <Route path="/brand-kit" element={<BrandKitPageWrapper />} />
-        <Route path="/app" element={<Suspense fallback={<AppLoadingFallback />}><AppWithWagmi /></Suspense>} />
-      </Routes>
+      <AnimatedPage>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<AboutPageWrapper />} />
+          <Route path="/brand-kit" element={<BrandKitPageWrapper />} />
+          <Route path="/app" element={<Suspense fallback={<AppLoadingFallback />}><AppWithWagmi /></Suspense>} />
+        </Routes>
+      </AnimatedPage>
 
       <Footer />
     </div>
