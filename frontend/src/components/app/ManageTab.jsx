@@ -242,23 +242,30 @@ function ManageTab() {
     writeContracts({ contracts });
   };
 
-  // Parallel approval flow - send all transactions at once, then track confirmations
+  // Sequential signing flow - sign one at a time, but track confirmations in parallel
   const startParallelApprovals = async () => {
     if (tokensNeedingApproval.length === 0 || !walletClient) return;
 
-    // Initialize approval tracking state
+    // Initialize approval tracking state - all start as 'pending'
     const initialTxs = tokensNeedingApproval.map(token => ({
       token,
       hash: null,
-      status: 'signing', // 'signing' | 'confirming' | 'confirmed' | 'error'
+      status: 'pending', // 'pending' | 'signing' | 'confirming' | 'confirmed' | 'error'
       error: null,
     }));
     setApprovalTxs(initialTxs);
     setShowApprovalModal(true);
     setIsSigningApprovals(true);
 
-    // Send all approval transactions to wallet
-    const txPromises = tokensNeedingApproval.map(async (tokenAddr, index) => {
+    // Sign transactions SEQUENTIALLY - wallets can't handle parallel signing requests
+    for (let i = 0; i < tokensNeedingApproval.length; i++) {
+      const tokenAddr = tokensNeedingApproval[i];
+
+      // Update current token to 'signing' status
+      setApprovalTxs(prev => prev.map((tx, idx) =>
+        idx === i ? { ...tx, status: 'signing' } : tx
+      ));
+
       try {
         const hash = await walletClient.writeContract({
           address: tokenAddr,
@@ -266,22 +273,24 @@ function ManageTab() {
           functionName: 'approve',
           args: [NOAH_ADDRESS, maxUint256],
         });
-        // Update state with the hash
-        setApprovalTxs(prev => prev.map((tx, i) =>
-          i === index ? { ...tx, hash, status: 'confirming' } : tx
+
+        // Update with hash and move to 'confirming' status
+        setApprovalTxs(prev => prev.map((tx, idx) =>
+          idx === i ? { ...tx, hash, status: 'confirming' } : tx
         ));
-        return { index, hash, success: true };
       } catch (err) {
         // User rejected or error
-        setApprovalTxs(prev => prev.map((tx, i) =>
-          i === index ? { ...tx, status: 'error', error: err.shortMessage || err.message } : tx
+        setApprovalTxs(prev => prev.map((tx, idx) =>
+          idx === i ? { ...tx, status: 'error', error: err.shortMessage || err.message } : tx
         ));
-        return { index, hash: null, success: false, error: err };
+        // If user rejects, stop the entire flow
+        if (err.message?.includes('reject') || err.message?.includes('denied') || err.code === 4001) {
+          break;
+        }
+        // For other errors, continue to next token
       }
-    });
+    }
 
-    // Wait for all signing to complete
-    await Promise.all(txPromises);
     setIsSigningApprovals(false);
   };
 
@@ -293,7 +302,7 @@ function ManageTab() {
 
   // Poll for approval transaction confirmations (stable interval)
   useEffect(() => {
-    if (!showApprovalModal) return;
+    if (!showApprovalModal || !walletClient) return;
 
     const pollConfirmations = async () => {
       const currentTxs = approvalTxsRef.current;
@@ -303,7 +312,11 @@ function ManageTab() {
 
       for (const tx of pendingTxs) {
         try {
-          const receipt = await publicClient.getTransactionReceipt({ hash: tx.hash });
+          // Use walletClient's transport to avoid RPC CORS issues
+          const receipt = await walletClient.request({
+            method: 'eth_getTransactionReceipt',
+            params: [tx.hash],
+          });
           if (receipt) {
             setApprovalTxs(prev => prev.map(t =>
               t.token === tx.token ? { ...t, status: 'confirmed' } : t
@@ -324,7 +337,7 @@ function ManageTab() {
         clearInterval(approvalPollingRef.current);
       }
     };
-  }, [showApprovalModal, publicClient]);
+  }, [showApprovalModal, walletClient]);
 
   // Handle completion when all approvals are done
   useEffect(() => {
@@ -1044,12 +1057,14 @@ function ManageTab() {
                         tx.status === 'confirmed' ? 'bg-green-100 text-green-600' :
                         tx.status === 'error' ? 'bg-red-100 text-red-600' :
                         tx.status === 'confirming' ? 'bg-blue-100 text-blue-600 animate-pulse' :
-                        'bg-yellow-100 text-yellow-600 animate-pulse'
+                        tx.status === 'signing' ? 'bg-yellow-100 text-yellow-600 animate-pulse' :
+                        'bg-slate-200 text-slate-500'
                       }`}>
                         {tx.status === 'confirmed' ? '✓ Done' :
                          tx.status === 'error' ? '✗ Failed' :
                          tx.status === 'confirming' ? 'Confirming...' :
-                         'Sign in wallet...'}
+                         tx.status === 'signing' ? 'Sign in wallet...' :
+                         'Waiting...'}
                       </span>
                     </div>
                   );
@@ -1062,7 +1077,7 @@ function ManageTab() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  <span>Confirm each transaction in your wallet</span>
+                  <span>Please sign the transaction in your wallet</span>
                 </div>
               )}
 
