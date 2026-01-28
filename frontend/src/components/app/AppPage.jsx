@@ -38,7 +38,7 @@ function AppPage() {
       </Link>
 
       {/* App Header */}
-      <div className="glass rounded-2xl md:rounded-3xl p-4 md:p-6">
+      <div className="glass rounded-2xl p-4 md:p-6">
         <h2 className="text-lg md:text-xl font-bold text-slate-700 mb-4">Your Ark</h2>
 
         {/* Tabs */}
@@ -60,7 +60,7 @@ function AppPage() {
       </div>
 
       {/* Tab Content */}
-      <div className="glass rounded-2xl md:rounded-3xl p-4 md:p-6">
+      <div className="glass rounded-2xl p-4 md:p-6">
         {activeTab === 'ark' && (hasArk ? <ManageTab /> : <CreateTab onArkCreated={refetchArk} />)}
         {activeTab === 'activity' && <ActivityTab />}
       </div>

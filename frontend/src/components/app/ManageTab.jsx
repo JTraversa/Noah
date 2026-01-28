@@ -705,7 +705,7 @@ function ManageTab() {
   const timeRemaining = formatTimeRemaining(ark.deadline);
 
   return (
-    <div className="relative overflow-hidden rounded-2xl md:rounded-3xl -m-4 md:-m-6 p-4 md:p-6">
+    <div className="relative overflow-hidden rounded-2xl -m-4 md:-m-6 p-4 md:p-6">
     <div className="space-y-6">
       {/* Status Card */}
       <div className={`rounded-2xl p-5 ${timeRemaining.urgent ? 'bg-gradient-to-br from-red-50 to-orange-50 border border-red-200' : 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200'}`}>
@@ -722,7 +722,7 @@ function ManageTab() {
           <button
             onClick={handlePing}
             disabled={isPinging || isPingConfirming}
-            className={`group relative px-6 py-3.5 rounded-2xl font-semibold text-sm transition-all transform hover:scale-105 active:scale-100 ${
+            className={`group relative px-6 py-3.5 rounded-xl font-semibold text-sm transition-all transform hover:scale-105 active:scale-100 ${
               timeRemaining.urgent
                 ? 'bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white shadow-lg shadow-red-500/30'
                 : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/30'
@@ -1317,7 +1317,7 @@ function ManageTab() {
         <div className="absolute inset-0 z-50 flex items-center justify-center p-4">
           {/* Blurred backdrop with rounded edges */}
           <div
-            className="absolute inset-0 bg-black/20 backdrop-blur-sm rounded-2xl md:rounded-3xl"
+            className="absolute inset-0 bg-black/20 backdrop-blur-sm rounded-2xl"
             onClick={() => {
               setIsEditingDuration(false);
               setNewDurationMinutes('');

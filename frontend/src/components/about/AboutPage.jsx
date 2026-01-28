@@ -15,7 +15,7 @@ function AboutPage() {
       </Link>
 
       {/* Blurb */}
-      <div className="glass rounded-2xl md:rounded-3xl p-4 md:p-6">
+      <div className="glass rounded-2xl p-4 md:p-6">
         <h2 className="text-lg md:text-xl font-bold text-slate-700 mb-3">About Noah</h2>
         <p className="text-sm md:text-base text-slate-600 leading-relaxed mb-3">
           Noah is a decentralized dead man's switch protocol that ensures your digital assets reach your intended beneficiaries
@@ -32,7 +32,7 @@ function AboutPage() {
       </div>
 
       {/* Technical Documentation */}
-      <div className="glass rounded-2xl md:rounded-3xl p-4 md:p-6">
+      <div className="glass rounded-2xl p-4 md:p-6">
         <h3 className="text-base md:text-lg font-semibold text-slate-700 mb-4">Technical Documentation</h3>
         <p className="text-xs md:text-sm text-slate-500 mb-4">
           Smart contract specifications derived from NatSpec documentation.

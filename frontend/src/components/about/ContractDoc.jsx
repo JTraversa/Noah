@@ -3,7 +3,7 @@ import ExpandableItem from './ExpandableItem';
 
 function ContractDoc({ contract }) {
   return (
-    <div className="glass-dark rounded-xl md:rounded-2xl p-4 md:p-6">
+    <div className="glass-dark rounded-xl p-4 md:p-6">
       <div className="flex items-center gap-2 mb-3">
         <h4 className="text-sm md:text-base font-semibold text-slate-700">{contract.name}</h4>
         <span className="text-[10px] md:text-xs text-slate-400 font-mono">{contract.file}</span>

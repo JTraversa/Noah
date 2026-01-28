@@ -14,13 +14,13 @@ function Hero() {
       <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center min-[1700px]:justify-start">
         <Link
           to="/app"
-          className="solid-btn px-6 md:px-8 py-3 md:py-4 rounded-2xl font-semibold text-indigo-600 text-base md:text-lg shadow-lg shadow-indigo-400/45"
+          className="solid-btn px-6 md:px-8 py-3 md:py-4 rounded-xl font-semibold text-indigo-600 text-base md:text-lg shadow-lg shadow-indigo-400/45"
         >
           Create Your Ark
         </Link>
         <Link
           to="/about"
-          className="glass-btn px-6 md:px-8 py-3 md:py-4 rounded-2xl font-semibold text-slate-600 text-base md:text-lg shadow-lg shadow-indigo-400/40"
+          className="glass-btn px-6 md:px-8 py-3 md:py-4 rounded-xl font-semibold text-slate-600 text-base md:text-lg shadow-lg shadow-indigo-400/40"
         >
           Learn More
         </Link>

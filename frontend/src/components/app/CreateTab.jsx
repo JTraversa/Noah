@@ -897,7 +897,7 @@ function CreateTab({ onArkCreated }) {
       <button
         type="submit"
         disabled={!beneficiary || selectedTokens.length === 0 || isPending || isConfirming || isBatchPending || isBatchConfirming || showApprovalModal}
-        className="w-full solid-btn px-6 py-4 rounded-2xl font-semibold text-indigo-600 text-base shadow-lg shadow-indigo-400/45 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full solid-btn px-6 py-4 rounded-xl font-semibold text-indigo-600 text-base shadow-lg shadow-indigo-400/45 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isPending || isBatchPending ? 'Confirm in Wallet...' :
          isConfirming || isBatchConfirming ? 'Creating Ark...' :

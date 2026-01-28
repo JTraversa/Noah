@@ -375,7 +375,9 @@ function ActivityTab() {
   if (!isConnected) {
     return (
       <div className="text-center py-10">
-        <div className="text-4xl mb-4">🔗</div>
+        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-3xl shadow-inner">
+          🔗
+        </div>
         <h3 className="text-base md:text-lg font-semibold text-slate-700 mb-2">
           Connect Your Wallet
         </h3>
@@ -389,7 +391,9 @@ function ActivityTab() {
   if (loading) {
     return (
       <div className="text-center py-10">
-        <div className="text-4xl mb-4 animate-pulse">📋</div>
+        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-3xl animate-pulse shadow-inner">
+          📋
+        </div>
         <p className="text-sm text-slate-500">Loading activity...</p>
       </div>
     );
@@ -398,7 +402,9 @@ function ActivityTab() {
   if (error) {
     return (
       <div className="text-center py-10">
-        <div className="text-4xl mb-4">⚠️</div>
+        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-red-100 to-orange-100 flex items-center justify-center text-3xl shadow-inner">
+          ⚠️
+        </div>
         <h3 className="text-base md:text-lg font-semibold text-slate-700 mb-2">
           Error Loading Activity
         </h3>
@@ -410,7 +416,9 @@ function ActivityTab() {
   if (activity.length === 0) {
     return (
       <div className="text-center py-10">
-        <div className="text-4xl mb-4">📋</div>
+        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-3xl shadow-inner">
+          📋
+        </div>
         <h3 className="text-base md:text-lg font-semibold text-slate-700 mb-2">
           No Activity Yet
         </h3>
