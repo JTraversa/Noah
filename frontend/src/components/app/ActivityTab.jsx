@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAccount, useChainId, usePublicClient } from 'wagmi';
+import { useAccount, useChainId, usePublicClient, useWalletClient } from 'wagmi';
 import { ERC20_ABI } from '../../contracts/noah';
 
 const API_BASE_URL = 'https://noah-backend.fly.dev';
@@ -197,6 +197,7 @@ function ActivityTab() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const publicClient = usePublicClient();
+  const { data: walletClient } = useWalletClient();
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -276,7 +277,8 @@ function ActivityTab() {
 
   // Fetch token symbols for all tokens in activity
   useEffect(() => {
-    if (!publicClient || activity.length === 0) return;
+    if (activity.length === 0) return;
+    if (!walletClient && !publicClient) return;
 
     // Collect all unique token addresses from activity
     const allTokens = new Set();
@@ -288,7 +290,7 @@ function ActivityTab() {
     });
 
     // Filter out tokens we already have cached
-    const tokensToFetch = [...allTokens].filter(t => !tokenSymbolCache[t]);
+    const tokensToFetch = [...allTokens].filter(t => !(t in tokenSymbolCache));
 
     if (tokensToFetch.length === 0) {
       // All tokens already cached, just update state
@@ -302,13 +304,42 @@ function ActivityTab() {
 
       await Promise.all(tokensToFetch.map(async (tokenAddr) => {
         try {
-          const symbol = await publicClient.readContract({
-            address: tokenAddr,
-            abi: ERC20_ABI,
-            functionName: 'symbol',
-          });
-          newSymbols[tokenAddr] = symbol;
-          tokenSymbolCache[tokenAddr] = symbol;
+          let symbol;
+          // Try walletClient first (uses wallet's RPC, avoids CORS issues)
+          if (walletClient) {
+            const data = await walletClient.request({
+              method: 'eth_call',
+              params: [{
+                to: tokenAddr,
+                data: '0x95d89b41', // symbol() function selector
+              }, 'latest'],
+            });
+            // Decode the string result (skip first 64 chars for offset, then parse length and string)
+            if (data && data !== '0x') {
+              const hex = data.slice(130); // Skip 0x + 64 chars offset + 64 chars length
+              const length = parseInt(data.slice(66, 130), 16);
+              symbol = '';
+              for (let i = 0; i < length * 2; i += 2) {
+                const charCode = parseInt(hex.slice(i, i + 2), 16);
+                if (charCode) symbol += String.fromCharCode(charCode);
+              }
+            }
+          } else if (publicClient) {
+            // Fallback to publicClient
+            symbol = await publicClient.readContract({
+              address: tokenAddr,
+              abi: ERC20_ABI,
+              functionName: 'symbol',
+            });
+          }
+
+          if (symbol) {
+            newSymbols[tokenAddr] = symbol;
+            tokenSymbolCache[tokenAddr] = symbol;
+          } else {
+            newSymbols[tokenAddr] = null;
+            tokenSymbolCache[tokenAddr] = null;
+          }
         } catch (err) {
           // Token might not have symbol function, skip it
           console.warn(`Failed to fetch symbol for ${tokenAddr}:`, err.message);
@@ -321,7 +352,7 @@ function ActivityTab() {
     };
 
     fetchSymbols();
-  }, [activity, publicClient]);
+  }, [activity, publicClient, walletClient]);
 
   const explorerUrl = chainExplorers[chainId];
 
