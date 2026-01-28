@@ -101,6 +101,7 @@ function ManageTab() {
 
   // Remove passenger contract write
   const [removingToken, setRemovingToken] = useState(null);
+  const [lastProcessedRemoveHash, setLastProcessedRemoveHash] = useState(null);
   const { data: removeHash, writeContract: writeRemove, isPending: isRemoving } = useWriteContract();
   const { isLoading: isRemoveConfirming, isSuccess: isRemoveSuccess } = useWaitForTransactionReceipt({
     hash: removeHash,
@@ -108,6 +109,7 @@ function ManageTab() {
   });
 
   // Add passengers contract write
+  const [lastProcessedAddHash, setLastProcessedAddHash] = useState(null);
   const { data: addHash, writeContract: writeAdd, isPending: isAdding, error: addError, reset: resetAdd } = useWriteContract();
   const { isLoading: isAddConfirming, isSuccess: isAddSuccess } = useWaitForTransactionReceipt({
     hash: addHash,
@@ -370,25 +372,38 @@ function ManageTab() {
     return tokens;
   }, [usdcBalance, ark?.tokens]);
 
-  // Refetch ark data after successful ping, update, remove, add, or destroy
+  // Refetch ark data after successful remove
   useEffect(() => {
-    if (isPingSuccess || isUpdateSuccess || isRemoveSuccess || isAddSuccess || isDestroySuccess) {
+    if (isRemoveSuccess && removeHash && removeHash !== lastProcessedRemoveHash) {
+      setLastProcessedRemoveHash(removeHash);
       refetch();
-      // Refresh activity cache after any transaction
+      refreshActivity(address, chainId);
+      setRemovingToken(null);
+    }
+  }, [isRemoveSuccess, removeHash, lastProcessedRemoveHash, refetch, address, chainId]);
+
+  // Refetch ark data after successful add
+  useEffect(() => {
+    if (isAddSuccess && addHash && addHash !== lastProcessedAddHash) {
+      setLastProcessedAddHash(addHash);
+      refetch();
+      refreshActivity(address, chainId);
+      setShowAddTokenModal(false);
+      setSelectedTokensToAdd([]);
+      setCustomTokens([]);
+      setCustomTokenAddress('');
+      setCustomTokenError('');
+    }
+  }, [isAddSuccess, addHash, lastProcessedAddHash, refetch, address, chainId]);
+
+  // Refetch ark data after successful ping, update, or destroy
+  useEffect(() => {
+    if (isPingSuccess || isUpdateSuccess || isDestroySuccess) {
+      refetch();
       refreshActivity(address, chainId);
       if (isUpdateSuccess) {
         setIsEditingDuration(false);
         setNewDurationMinutes('');
-      }
-      if (isRemoveSuccess) {
-        setRemovingToken(null);
-      }
-      if (isAddSuccess) {
-        setShowAddTokenModal(false);
-        setSelectedTokensToAdd([]);
-        setCustomTokens([]);
-        setCustomTokenAddress('');
-        setCustomTokenError('');
       }
       if (isDestroySuccess) {
         setShowDestroyConfirm(false);
@@ -396,7 +411,7 @@ function ManageTab() {
         setShowDestroyPendingModal(true);
       }
     }
-  }, [isPingSuccess, isUpdateSuccess, isRemoveSuccess, isAddSuccess, isDestroySuccess, refetch, address, chainId]);
+  }, [isPingSuccess, isUpdateSuccess, isDestroySuccess, refetch, address, chainId]);
 
   // Poll API to check if ark has been destroyed
   useEffect(() => {
