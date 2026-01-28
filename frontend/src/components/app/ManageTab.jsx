@@ -844,21 +844,42 @@ function ManageTab() {
       <div className="pt-4 border-t border-slate-200">
         <div className="text-xs text-slate-500 mb-2">Danger Zone</div>
         {showDestroyConfirm ? (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
-            <p className="text-sm text-red-700">
-              Are you sure you want to destroy your Ark? This will deactivate your dead man's switch. You can create a new one afterward.
-            </p>
+          <div className="bg-gradient-to-br from-red-50 to-orange-50 border border-red-200 rounded-2xl p-5 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0 text-lg">
+                💣
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-red-700 mb-1">Destroy Your Ark?</h4>
+                <p className="text-sm text-red-600/80">
+                  This will permanently deactivate your dead man's switch. All protected tokens will be removed. You can create a new Ark afterward.
+                </p>
+              </div>
+            </div>
             <div className="flex gap-2">
               <button
                 onClick={handleDestroyArk}
                 disabled={isDestroying || isDestroyConfirming}
-                className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-sm font-semibold rounded-xl shadow-lg shadow-red-500/30 transition-all transform hover:scale-[1.02] active:scale-100 disabled:opacity-50 disabled:transform-none disabled:shadow-none"
               >
-                {isDestroying ? 'Confirm in Wallet...' : isDestroyConfirming ? 'Destroying...' : 'Yes, Destroy Ark'}
+                {isDestroying || isDestroyConfirming ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    {isDestroying ? 'Confirm in Wallet...' : 'Destroying...'}
+                  </>
+                ) : (
+                  <>
+                    <span>💣</span>
+                    Yes, Destroy Ark
+                  </>
+                )}
               </button>
               <button
                 onClick={() => setShowDestroyConfirm(false)}
-                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-600 text-sm font-medium rounded-lg"
+                className="px-5 py-3 bg-white hover:bg-slate-50 text-slate-600 text-sm font-semibold rounded-xl border border-slate-200 transition-all"
               >
                 Cancel
               </button>
@@ -867,8 +888,9 @@ function ManageTab() {
         ) : (
           <button
             onClick={() => setShowDestroyConfirm(true)}
-            className="text-sm text-red-500 hover:text-red-600 font-medium"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-500 hover:text-white bg-red-50 hover:bg-gradient-to-r hover:from-red-500 hover:to-orange-500 border border-red-200 hover:border-transparent rounded-xl transition-all transform hover:scale-105 active:scale-100 hover:shadow-lg hover:shadow-red-500/25"
           >
+            <span>💣</span>
             Destroy Ark
           </button>
         )}
