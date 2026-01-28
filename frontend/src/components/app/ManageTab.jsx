@@ -682,9 +682,23 @@ function ManageTab() {
         <h3 className="text-sm font-semibold text-slate-700">Ark Details</h3>
 
         {/* Beneficiary */}
-        <div className="bg-slate-50/50 rounded-xl p-4">
-          <div className="text-xs text-slate-500 mb-1">Beneficiary</div>
-          <div className="font-mono text-sm text-slate-700 break-all">{ark.beneficiary}</div>
+        <div className="bg-gradient-to-r from-slate-50 to-slate-100/50 rounded-xl p-4 border border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center flex-shrink-0 shadow-sm">
+              <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-slate-500 mb-1">Beneficiary</div>
+              <div className="font-mono text-sm text-slate-700 break-all bg-white/60 rounded-lg px-3 py-2 border border-slate-100">
+                {ark.beneficiary}
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-slate-400 mt-3 ml-13">
+            This address will receive your tokens if the deadline passes
+          </p>
         </div>
 
         {/* Duration */}
