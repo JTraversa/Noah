@@ -667,8 +667,10 @@ function ManageTab() {
 
   if (!isConnected) {
     return (
-      <div className="text-center py-8">
-        <div className="text-4xl mb-3">🔗</div>
+      <div className="text-center py-10">
+        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-3xl shadow-inner">
+          🔗
+        </div>
         <h3 className="text-base md:text-lg font-semibold text-slate-700 mb-2">
           Connect Your Wallet
         </h3>

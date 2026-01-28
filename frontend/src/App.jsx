@@ -48,8 +48,56 @@ function AppLoadingFallback() {
   return (
     <main className="relative z-10 flex-1 py-8 overflow-auto">
       <div className="flex flex-col gap-4 md:gap-6 max-w-2xl mx-auto w-full">
-        <div className="glass rounded-2xl p-8 text-center">
-          <div className="text-lg text-slate-500">Loading...</div>
+        {/* Header skeleton */}
+        <div className="glass rounded-2xl p-4 md:p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]" />
+              <div className="space-y-2">
+                <div className="h-4 w-24 rounded-lg bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]" />
+                <div className="h-3 w-32 rounded-lg bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%] animate-[shimmer_1.5s_infinite_0.1s]" />
+              </div>
+            </div>
+            <div className="w-28 h-9 rounded-xl bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]" />
+          </div>
+        </div>
+
+        {/* Tabs skeleton */}
+        <div className="glass rounded-2xl p-4 md:p-6">
+          <div className="flex gap-2 mb-6">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-10 flex-1 rounded-xl bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]"
+                style={{ animationDelay: `${i * 0.1}s` }}
+              />
+            ))}
+          </div>
+
+          {/* Content skeleton */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]" />
+              <div className="h-4 w-40 rounded-lg bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%] animate-[shimmer_1.5s_infinite_0.1s]" />
+            </div>
+            <div className="h-12 w-full rounded-xl bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%] animate-[shimmer_1.5s_infinite_0.2s]" />
+
+            <div className="flex items-center gap-3 mt-6">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%] animate-[shimmer_1.5s_infinite_0.3s]" />
+              <div className="h-4 w-36 rounded-lg bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%] animate-[shimmer_1.5s_infinite_0.4s]" />
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="h-10 rounded-lg bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%] animate-[shimmer_1.5s_infinite]"
+                  style={{ animationDelay: `${0.4 + i * 0.1}s` }}
+                />
+              ))}
+            </div>
+
+            <div className="h-14 w-full rounded-xl bg-gradient-to-r from-indigo-200 via-indigo-100 to-indigo-200 bg-[length:200%_100%] animate-[shimmer_1.5s_infinite_0.8s] mt-6" />
+          </div>
         </div>
       </div>
     </main>
