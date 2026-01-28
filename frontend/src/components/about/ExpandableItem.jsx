@@ -20,14 +20,14 @@ function ExpandableItem({ name, desc, params, returns, type }) {
           <p className="text-[10px] md:text-xs text-slate-500 mt-1">{desc}</p>
         </div>
         {hasDetails && (
-          <span className={`ml-2 text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
+          <span className={`ml-2 text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>
             ›
           </span>
         )}
       </button>
 
       {isExpanded && hasDetails && (
-        <div className="px-3 pb-3 pt-1 border-t border-slate-200/50">
+        <div className="px-3 pb-3 pt-1 border-t border-slate-200/50 dropdown-enter">
           {params && params.length > 0 && (
             <div className="mb-2">
               <div className="text-[9px] md:text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Parameters</div>

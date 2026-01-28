@@ -16,18 +16,39 @@ function TokenList({ tokens, tokenSymbols, maxVisible = 3 }) {
 
   if (!tokens || tokens.length === 0) return null;
 
-  const visibleTokens = expanded ? tokens : tokens.slice(0, maxVisible);
-  const hiddenCount = tokens.length - maxVisible;
+  const initialTokens = tokens.slice(0, maxVisible);
+  const extraTokens = tokens.slice(maxVisible);
+  const hiddenCount = extraTokens.length;
 
   return (
     <div className="mt-2">
       <div className="flex flex-wrap gap-1.5">
-        {visibleTokens.map((token, idx) => {
+        {initialTokens.map((token, idx) => {
           const symbol = tokenSymbols[token.toLowerCase()];
           return (
             <span
               key={idx}
               className="inline-flex items-center px-2 py-1 rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 text-xs text-slate-600 hover:border-indigo-200 hover:from-indigo-50 hover:to-purple-50 transition-all cursor-default"
+              title={token}
+            >
+              {symbol ? (
+                <>
+                  <span className="font-semibold text-slate-700">{symbol}</span>
+                  <span className="text-slate-400 font-mono ml-1.5 text-[10px]">{token.slice(0, 6)}...{token.slice(-4)}</span>
+                </>
+              ) : (
+                <span className="font-mono">{token.slice(0, 6)}...{token.slice(-4)}</span>
+              )}
+            </span>
+          );
+        })}
+        {expanded && extraTokens.map((token, idx) => {
+          const symbol = tokenSymbols[token.toLowerCase()];
+          return (
+            <span
+              key={`extra-${idx}`}
+              className="inline-flex items-center px-2 py-1 rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 text-xs text-slate-600 hover:border-indigo-200 hover:from-indigo-50 hover:to-purple-50 transition-all cursor-default dropdown-enter"
+              style={{ animationDelay: `${idx * 0.03}s` }}
               title={token}
             >
               {symbol ? (
@@ -47,7 +68,7 @@ function TokenList({ tokens, tokenSymbols, maxVisible = 3 }) {
           onClick={() => setExpanded(!expanded)}
           className="flex items-center gap-1.5 mt-2 text-xs font-medium text-indigo-500 hover:text-indigo-600 transition-colors"
         >
-          <svg className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className={`w-3 h-3 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
           {expanded ? 'Show less' : `+${hiddenCount} more`}
