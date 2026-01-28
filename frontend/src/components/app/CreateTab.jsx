@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient, useChainId } from 'wagmi';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient, useChainId, useWalletClient } from 'wagmi';
 import { useWriteContracts, useCallsStatus, useCapabilities } from 'wagmi/experimental';
-import { formatUnits, maxUint256 } from 'viem';
+import { formatUnits, maxUint256, encodeFunctionData } from 'viem';
 import { NOAH_ADDRESS, NOAH_ABI, MOCK_USDC_ADDRESS, ERC20_ABI } from '../../contracts/noah';
 import { refreshActivity } from './ActivityTab';
 
@@ -19,6 +19,7 @@ function CreateTab({ onArkCreated }) {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const publicClient = usePublicClient();
+  const { data: walletClient } = useWalletClient();
   const [beneficiary, setBeneficiary] = useState('');
   const [duration, setDuration] = useState(2592000);
   const [isCustomDuration, setIsCustomDuration] = useState(false);
@@ -35,10 +36,12 @@ function CreateTab({ onArkCreated }) {
   const [tokenAllowances, setTokenAllowances] = useState({}); // { tokenAddress: boolean }
   const [isCheckingAllowances, setIsCheckingAllowances] = useState(false);
 
-  // Sequential approval state (fallback for wallets without batching)
-  const [isApprovingSequentially, setIsApprovingSequentially] = useState(false);
-  const [currentApprovalIndex, setCurrentApprovalIndex] = useState(0);
+  // Parallel approval state (fallback for wallets without batching)
+  // approvalTxs: [{ token: address, hash: txHash, status: 'pending' | 'signing' | 'confirming' | 'confirmed' | 'error', error?: string }]
+  const [approvalTxs, setApprovalTxs] = useState([]);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [isSigningApprovals, setIsSigningApprovals] = useState(false);
+  const approvalPollingRef = useRef(null);
 
   // Read USDC balance
   const { data: usdcBalance } = useReadContract({
@@ -101,7 +104,7 @@ function CreateTab({ onArkCreated }) {
   // Check batch status
   const { data: callsStatus } = useCallsStatus({
     id: batchId,
-    query: { enabled: !!batchId, refetchInterval: 1000 },
+    query: { enabled: !!batchId, refetchInterval: 500 },
   });
 
   const isBatchConfirming = callsStatus?.status === 'PENDING';
@@ -110,6 +113,7 @@ function CreateTab({ onArkCreated }) {
   // Wait for transaction (for non-batched flow - both approvals and ark creation)
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
+    query: { refetchInterval: 500 }, // Poll every 1 second for faster confirmation
   });
 
   // Check allowance for a token
@@ -190,67 +194,125 @@ function CreateTab({ onArkCreated }) {
     writeContracts({ contracts });
   };
 
-  // Sequential approval flow (for EOA wallets)
-  const startSequentialApproval = () => {
-    if (tokensNeedingApproval.length === 0) return;
-    setIsApprovingSequentially(true);
-    setCurrentApprovalIndex(0);
+  // Parallel approval flow - send all transactions at once, then track confirmations
+  const startParallelApprovals = async () => {
+    if (tokensNeedingApproval.length === 0 || !walletClient) return;
+
+    // Initialize approval tracking state
+    const initialTxs = tokensNeedingApproval.map(token => ({
+      token,
+      hash: null,
+      status: 'signing', // 'signing' | 'confirming' | 'confirmed' | 'error'
+      error: null,
+    }));
+    setApprovalTxs(initialTxs);
     setShowApprovalModal(true);
-    // Start first approval
-    writeContract({
-      address: tokensNeedingApproval[0],
-      abi: ERC20_ABI,
-      functionName: 'approve',
-      args: [NOAH_ADDRESS, maxUint256],
+    setIsSigningApprovals(true);
+
+    // Send all approval transactions to wallet
+    const txPromises = tokensNeedingApproval.map(async (tokenAddr, index) => {
+      try {
+        const hash = await walletClient.writeContract({
+          address: tokenAddr,
+          abi: ERC20_ABI,
+          functionName: 'approve',
+          args: [NOAH_ADDRESS, maxUint256],
+        });
+        // Update state with the hash
+        setApprovalTxs(prev => prev.map((tx, i) =>
+          i === index ? { ...tx, hash, status: 'confirming' } : tx
+        ));
+        return { index, hash, success: true };
+      } catch (err) {
+        // User rejected or error
+        setApprovalTxs(prev => prev.map((tx, i) =>
+          i === index ? { ...tx, status: 'error', error: err.shortMessage || err.message } : tx
+        ));
+        return { index, hash: null, success: false, error: err };
+      }
     });
+
+    // Wait for all signing to complete
+    await Promise.all(txPromises);
+    setIsSigningApprovals(false);
   };
 
-  // Handle sequential approval success - move to next or finish
+  // Keep a ref to current approvalTxs for stable polling
+  const approvalTxsRef = useRef([]);
   useEffect(() => {
-    if (!isApprovingSequentially || !isSuccess) return;
+    approvalTxsRef.current = approvalTxs;
+  }, [approvalTxs]);
 
-    const approveNext = async () => {
-      // Update allowance for the token we just approved
-      const justApproved = tokensNeedingApproval[currentApprovalIndex];
-      if (justApproved) {
-        setTokenAllowances(prev => ({ ...prev, [justApproved]: true }));
-      }
+  // Poll for approval transaction confirmations (stable interval)
+  useEffect(() => {
+    if (!showApprovalModal) return;
 
-      const nextIndex = currentApprovalIndex + 1;
+    const pollConfirmations = async () => {
+      const currentTxs = approvalTxsRef.current;
+      if (currentTxs.length === 0) return;
 
-      if (nextIndex < tokensNeedingApproval.length) {
-        // More tokens to approve
-        setCurrentApprovalIndex(nextIndex);
-        resetWrite();
-        // Small delay to let state update
-        setTimeout(() => {
-          writeContract({
-            address: tokensNeedingApproval[nextIndex],
-            abi: ERC20_ABI,
-            functionName: 'approve',
-            args: [NOAH_ADDRESS, maxUint256],
-          });
-        }, 500);
-      } else {
-        // All approvals done, close modal and re-check allowances
-        setShowApprovalModal(false);
-        setIsApprovingSequentially(false);
-        setCurrentApprovalIndex(0);
-        resetWrite();
-        await checkAllApprovals();
+      const pendingTxs = currentTxs.filter(tx => tx.status === 'confirming' && tx.hash);
+
+      for (const tx of pendingTxs) {
+        try {
+          const receipt = await publicClient.getTransactionReceipt({ hash: tx.hash });
+          if (receipt) {
+            setApprovalTxs(prev => prev.map(t =>
+              t.token === tx.token ? { ...t, status: 'confirmed' } : t
+            ));
+          }
+        } catch (err) {
+          // Transaction not yet mined, continue polling
+        }
       }
     };
 
-    approveNext();
-  }, [isSuccess, isApprovingSequentially]);
+    // Poll immediately once, then set interval
+    pollConfirmations();
+    approvalPollingRef.current = setInterval(pollConfirmations, 500);
 
-  // Show modal when transaction is confirmed
+    return () => {
+      if (approvalPollingRef.current) {
+        clearInterval(approvalPollingRef.current);
+      }
+    };
+  }, [showApprovalModal, publicClient]);
+
+  // Handle completion when all approvals are done
   useEffect(() => {
-    if (isSuccess) {
+    if (!showApprovalModal || approvalTxs.length === 0) return;
+
+    const allDone = approvalTxs.every(tx => tx.status === 'confirmed' || tx.status === 'error');
+    if (!allDone) return;
+
+    // Update allowances for confirmed ones
+    const confirmed = approvalTxs.filter(tx => tx.status === 'confirmed');
+    if (confirmed.length > 0) {
+      setTokenAllowances(prev => {
+        const updated = { ...prev };
+        confirmed.forEach(tx => { updated[tx.token] = true; });
+        return updated;
+      });
+    }
+
+    // Check if all succeeded
+    const allConfirmed = approvalTxs.every(tx => tx.status === 'confirmed');
+    if (allConfirmed) {
+      // Close modal after a short delay
+      setTimeout(() => {
+        setShowApprovalModal(false);
+        setApprovalTxs([]);
+      }, 500);
+    }
+  }, [showApprovalModal, approvalTxs]);
+
+  // Show modal when ark creation transaction is confirmed (not approvals)
+  useEffect(() => {
+    if (isSuccess && !showApprovalModal) {
       setCreationConfirmedOnChain(true);
       setShowCreationPendingModal(true);
     }
-  }, [isSuccess]);
+  }, [isSuccess, showApprovalModal]);
 
   // Poll API to check if ark has been created
   useEffect(() => {
@@ -361,8 +423,8 @@ function CreateTab({ onArkCreated }) {
         // Smart wallet - batch all approvals + create in one tx
         handleBatchedApproveAndCreate();
       } else {
-        // EOA wallet - need sequential approvals first
-        startSequentialApproval();
+        // EOA wallet - send all approvals at once, wait for confirmations
+        startParallelApprovals();
       }
     } else {
       // All tokens approved, just create ark
@@ -405,74 +467,74 @@ function CreateTab({ onArkCreated }) {
 
   return (
     <>
-    {/* Sequential Approval Progress Modal */}
-    {showApprovalModal && isApprovingSequentially && (
+    {/* Parallel Approval Progress Modal */}
+    {showApprovalModal && approvalTxs.length > 0 && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/50" />
         <div className="relative bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+          <button
+            onClick={() => {
+              setShowApprovalModal(false);
+              setApprovalTxs([]);
+              if (approvalPollingRef.current) {
+                clearInterval(approvalPollingRef.current);
+              }
+            }}
+            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+          >
+            <span className="text-xl">&times;</span>
+          </button>
           <div className="text-center">
             <div className="text-4xl mb-4">🔐</div>
             <h3 className="text-lg font-semibold text-slate-700 mb-2">
-              Approving Tokens ({currentApprovalIndex + 1}/{tokensNeedingApproval.length})
+              Approving Tokens ({approvalTxs.filter(tx => tx.status === 'confirmed').length}/{approvalTxs.length})
             </h3>
             <p className="text-sm text-slate-500 mb-4">
-              Approve Noah to transfer your tokens when your conditions trigger
+              {isSigningApprovals
+                ? 'Please confirm each approval in your wallet'
+                : 'Waiting for confirmations...'}
             </p>
 
             {/* Token approval list */}
             <div className="space-y-2 mb-4">
-              {tokensNeedingApproval.map((addr, idx) => {
-                const token = tokens.find(t => t.address === addr);
-                const isCompleted = idx < currentApprovalIndex || tokenAllowances[addr];
-                const isCurrent = idx === currentApprovalIndex;
+              {approvalTxs.map((tx) => {
+                const token = tokens.find(t => t.address === tx.token);
                 return (
-                  <div key={addr} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
+                  <div key={tx.token} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
                     <span className="text-sm font-medium text-slate-700">
-                      {token?.symbol || addr.slice(0, 8)}
+                      {token?.symbol || tx.token.slice(0, 8)}
                     </span>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      isCompleted ? 'bg-green-100 text-green-600' :
-                      isCurrent ? 'bg-yellow-100 text-yellow-600 animate-pulse' :
-                      'bg-slate-200 text-slate-500'
+                      tx.status === 'confirmed' ? 'bg-green-100 text-green-600' :
+                      tx.status === 'error' ? 'bg-red-100 text-red-600' :
+                      tx.status === 'confirming' ? 'bg-blue-100 text-blue-600 animate-pulse' :
+                      'bg-yellow-100 text-yellow-600 animate-pulse'
                     }`}>
-                      {isCompleted ? '✓ Done' :
-                       isCurrent ? (isPending ? 'Confirm...' : isConfirming ? 'Confirming...' : 'Approving...') :
-                       'Waiting'}
+                      {tx.status === 'confirmed' ? '✓ Done' :
+                       tx.status === 'error' ? '✗ Failed' :
+                       tx.status === 'confirming' ? 'Confirming...' :
+                       'Sign in wallet...'}
                     </span>
                   </div>
                 );
               })}
             </div>
 
-            {(isPending || isConfirming) && (
+            {isSigningApprovals && (
               <div className="flex items-center justify-center gap-2 text-sm text-indigo-600 bg-indigo-50 rounded-lg p-3">
                 <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                <span>{isPending ? 'Confirm in wallet...' : 'Waiting for confirmation...'}</span>
+                <span>Confirm each transaction in your wallet</span>
               </div>
             )}
 
-            {error && (
+            {approvalTxs.some(tx => tx.status === 'error') && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg mt-3">
                 <p className="text-xs text-red-600">
-                  {error.shortMessage || error.message}
+                  Some approvals failed. You can close this modal and try again.
                 </p>
-                <button
-                  onClick={() => {
-                    resetWrite();
-                    writeContract({
-                      address: tokensNeedingApproval[currentApprovalIndex],
-                      abi: ERC20_ABI,
-                      functionName: 'approve',
-                      args: [NOAH_ADDRESS, maxUint256],
-                    });
-                  }}
-                  className="mt-2 text-xs text-red-600 underline"
-                >
-                  Try again
-                </button>
               </div>
             )}
           </div>
@@ -725,7 +787,7 @@ function CreateTab({ onArkCreated }) {
       </div>
 
       {/* Error Display */}
-      {(error || batchError) && !isApprovingSequentially && (
+      {(error || batchError) && !showApprovalModal && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
           <p className="text-sm text-red-600">
             Error: {(error || batchError)?.shortMessage || (error || batchError)?.message}
@@ -759,7 +821,7 @@ function CreateTab({ onArkCreated }) {
       {/* Submit Button */}
       <button
         type="submit"
-        disabled={!beneficiary || selectedTokens.length === 0 || isPending || isConfirming || isBatchPending || isBatchConfirming || isApprovingSequentially}
+        disabled={!beneficiary || selectedTokens.length === 0 || isPending || isConfirming || isBatchPending || isBatchConfirming || showApprovalModal}
         className="w-full solid-btn px-6 py-4 rounded-2xl font-semibold text-indigo-600 text-base shadow-lg shadow-indigo-400/45 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isPending || isBatchPending ? 'Confirm in Wallet...' :
