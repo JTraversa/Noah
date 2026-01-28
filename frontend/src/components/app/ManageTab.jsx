@@ -56,6 +56,9 @@ function ManageTab() {
   const [tokenAllowances, setTokenAllowances] = useState({});
   const [isCheckingAllowances, setIsCheckingAllowances] = useState(false);
 
+  // Token metadata cache for displaying symbols/names
+  const [tokenMetadata, setTokenMetadata] = useState({});
+
   // Parallel approval state (fallback for wallets without batching)
   // approvalTxs: [{ token: address, hash: txHash, status: 'signing' | 'confirming' | 'confirmed' | 'error', error?: string }]
   const [approvalTxs, setApprovalTxs] = useState([]);
@@ -366,6 +369,78 @@ function ManageTab() {
       }, 500);
     }
   }, [showApprovalModal, approvalTxs]);
+
+  // Fetch token metadata (symbol, name) for protected tokens
+  useEffect(() => {
+    if (!ark?.tokens || ark.tokens.length === 0 || !walletClient) return;
+
+    const fetchMetadata = async () => {
+      const newMetadata = { ...tokenMetadata };
+
+      for (const tokenAddr of ark.tokens) {
+        // Skip if already cached
+        if (newMetadata[tokenAddr.toLowerCase()]) continue;
+
+        try {
+          // Fetch symbol using raw eth_call
+          const symbolData = await walletClient.request({
+            method: 'eth_call',
+            params: [{
+              to: tokenAddr,
+              data: '0x95d89b41', // symbol() function selector
+            }, 'latest'],
+          });
+
+          // Fetch name using raw eth_call
+          const nameData = await walletClient.request({
+            method: 'eth_call',
+            params: [{
+              to: tokenAddr,
+              data: '0x06fdde03', // name() function selector
+            }, 'latest'],
+          });
+
+          // Decode ABI-encoded string results
+          const decodeString = (data) => {
+            if (!data || data === '0x' || data.length < 66) return null;
+            try {
+              // Get the offset (first 32 bytes)
+              const offset = parseInt(data.slice(2, 66), 16);
+              // Get the length (next 32 bytes after offset)
+              const lengthStart = 2 + offset * 2;
+              const length = parseInt(data.slice(lengthStart, lengthStart + 64), 16);
+              // Get the actual string data
+              const stringStart = lengthStart + 64;
+              const stringHex = data.slice(stringStart, stringStart + length * 2);
+              // Convert hex to string
+              let result = '';
+              for (let i = 0; i < stringHex.length; i += 2) {
+                result += String.fromCharCode(parseInt(stringHex.slice(i, i + 2), 16));
+              }
+              return result;
+            } catch {
+              return null;
+            }
+          };
+
+          const symbol = decodeString(symbolData) || tokenAddr.slice(0, 6);
+          const name = decodeString(nameData) || 'Unknown Token';
+
+          newMetadata[tokenAddr.toLowerCase()] = { symbol, name };
+        } catch (err) {
+          console.error('Error fetching token metadata:', err);
+          newMetadata[tokenAddr.toLowerCase()] = {
+            symbol: tokenAddr.slice(0, 6),
+            name: 'Unknown Token',
+          };
+        }
+      }
+
+      setTokenMetadata(newMetadata);
+    };
+
+    fetchMetadata();
+  }, [ark?.tokens, walletClient]);
 
   // Build available tokens list (tokens not already in ark)
   const availableTokens = React.useMemo(() => {
@@ -814,15 +889,20 @@ function ManageTab() {
                   key={tokenAddress}
                   className={`group flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-slate-100/50 rounded-xl border border-slate-100 hover:border-slate-200 transition-all ${isBeingRemoved ? 'opacity-60 scale-98' : ''}`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-sm font-bold text-indigo-500 shadow-sm">
-                      {tokenAddress.slice(2, 4).toUpperCase()}
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-sm font-bold text-indigo-500 shadow-sm flex-shrink-0">
+                      {tokenMetadata[tokenAddress.toLowerCase()]?.symbol?.charAt(0) || tokenAddress.slice(2, 4).toUpperCase()}
                     </div>
-                    <div>
-                      <div className="text-sm font-medium text-slate-700 font-mono">
-                        {tokenAddress.slice(0, 6)}...{tokenAddress.slice(-4)}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium text-slate-700">
+                        {tokenMetadata[tokenAddress.toLowerCase()]?.symbol || 'Token'}
+                        <span className="text-xs text-slate-400 ml-2">
+                          {tokenMetadata[tokenAddress.toLowerCase()]?.name || 'Protected Token'}
+                        </span>
                       </div>
-                      <div className="text-xs text-slate-400">Protected Token</div>
+                      <div className="text-xs text-slate-400 font-mono truncate">
+                        {tokenAddress}
+                      </div>
                     </div>
                   </div>
                   <button
