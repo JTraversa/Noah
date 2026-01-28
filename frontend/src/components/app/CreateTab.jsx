@@ -603,9 +603,16 @@ function CreateTab({ onArkCreated }) {
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Beneficiary Input */}
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">
-          Beneficiary Address
-        </label>
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center flex-shrink-0 shadow-sm">
+            <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <label className="text-sm font-medium text-slate-700">
+            Beneficiary Address
+          </label>
+        </div>
         <input
           type="text"
           value={beneficiary}
@@ -620,9 +627,16 @@ function CreateTab({ onArkCreated }) {
 
       {/* Duration Select */}
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-2">
-          Deadline Duration
-        </label>
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center flex-shrink-0 shadow-sm">
+            <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <label className="text-sm font-medium text-slate-700">
+            Deadline Duration
+          </label>
+        </div>
         <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
           {durationOptions.map((opt) => (
             <button
@@ -684,13 +698,25 @@ function CreateTab({ onArkCreated }) {
       {/* Token Selection */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <label className="block text-sm font-semibold text-slate-700">
-            Select Tokens
-          </label>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
+              <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <label className="text-sm font-semibold text-slate-700">
+              Select Tokens
+            </label>
+          </div>
           <button
             type="button"
             onClick={selectAllTokens}
-            className="flex items-center gap-1 text-xs font-medium text-indigo-500 hover:text-white bg-indigo-50 hover:bg-indigo-500 px-2.5 py-1.5 rounded-lg border border-indigo-200 hover:border-transparent transition-all"
+            disabled={tokens.length === 0}
+            className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-all ${
+              tokens.length === 0
+                ? 'text-slate-400 bg-slate-50 border-slate-200 cursor-not-allowed'
+                : 'text-indigo-500 hover:text-white bg-indigo-50 hover:bg-indigo-500 border-indigo-200 hover:border-transparent'
+            }`}
             title="Selects tokens worth more than $1"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
