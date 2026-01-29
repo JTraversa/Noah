@@ -95,13 +95,6 @@ forge script scripts/LocalSetup.s.sol --rpc-url http://localhost:8545 --broadcas
 - `DeadlineUpdated` - Emitted when deadline duration changes
 - `ArkDestroyed` - Emitted when an Ark is destroyed
 
-## Security
-
-- SafeERC20 for all token transfers
-- No admin keys or privileged roles
-- Permissionless flood execution
-- Comprehensive test coverage with fuzz testing
-
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
