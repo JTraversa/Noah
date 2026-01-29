@@ -60,7 +60,7 @@ function AboutPage() {
             </p>
             <div className="flex flex-wrap gap-2">
               <a
-                href="https://github.com/jtraversa"
+                href="https://github.com/JTraversa/Noah"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 rounded-lg transition-all"
@@ -71,7 +71,7 @@ function AboutPage() {
                 GitHub
               </a>
               <a
-                href="https://twitter.com/TraversaJulian"
+                href="https://x.com/trynoahxyz"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 rounded-lg transition-all"
@@ -116,7 +116,7 @@ function AboutPage() {
           </a>
 
           <a
-            href="#"
+            href="https://x.com/trynoahxyz"
             target="_blank"
             rel="noopener noreferrer"
             className="flex flex-col items-center gap-2 p-4 bg-slate-50/50 hover:bg-gradient-to-br hover:from-indigo-50 hover:to-purple-50 rounded-xl border border-slate-100 hover:border-indigo-200 transition-all group"
