@@ -14,32 +14,6 @@ Noah ensures your digital assets reach your intended beneficiaries in case of lo
 
 The flood mechanism is incentivized through MEV opportunities, ensuring reliable execution without relying on centralized keepers.
 
-## Project Structure
-
-```
-├── contracts/          # Solidity smart contracts
-│   ├── noah.sol        # Main Noah contract
-│   └── interfaces/     # Contract interfaces
-├── frontend/           # React frontend application
-├── scripts/            # Deployment scripts
-├── test/               # Contract tests
-└── lib/                # Foundry dependencies
-```
-
-## Tech Stack
-
-**Smart Contracts**
-- Solidity 0.8.20
-- Foundry (Forge, Cast, Anvil)
-- OpenZeppelin Contracts
-
-**Frontend**
-- React 18
-- Vite
-- Wagmi + Viem
-- RainbowKit
-- TailwindCSS
-
 ## Getting Started
 
 ### Prerequisites
@@ -120,13 +94,6 @@ forge script scripts/LocalSetup.s.sol --rpc-url http://localhost:8545 --broadcas
 - `PassengerRemoved` - Emitted when a token is removed
 - `DeadlineUpdated` - Emitted when deadline duration changes
 - `ArkDestroyed` - Emitted when an Ark is destroyed
-
-## Security
-
-- SafeERC20 for all token transfers
-- No admin keys or privileged roles
-- Permissionless flood execution
-- Comprehensive test coverage with fuzz testing
 
 ## License
 
