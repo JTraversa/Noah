@@ -15,7 +15,7 @@ const protectionSteps = [
 
 function HowItWorks() {
   return (
-    <div className="glass rounded-2xl p-4 md:p-6">
+    <div className="glass rounded-2xl p-4 md:p-6 hidden min-[1700px]:block">
       <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4 text-slate-700">How It Works</h3>
 
       {/* Setup Flow */}

@@ -19,7 +19,7 @@ function Header() {
       <nav className="flex items-center gap-2 md:gap-3">
         <Link
           to="/about"
-          className="glass-btn px-3 md:px-5 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium hidden sm:block text-slate-600 shadow-lg shadow-indigo-400/40"
+          className="glass-btn px-3 md:px-5 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium text-slate-600 shadow-lg shadow-indigo-400/40"
         >
           About
         </Link>
