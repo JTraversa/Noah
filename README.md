@@ -1,92 +1,133 @@
-# Noah - A revolutionary hardware redundancy, fund recovery, and inheritance solution that guarantees your crypto assets will never be lost.
+# Noah
 
+A decentralized dead man's switch protocol for trustless crypto inheritance.
 
-Noah's dead man switch technology provides a secure, automated way to ensure your cryptocurrency is safely inherited. By combining blockchain security with real-world verification systems, we create a foolproof inheritance mechanism.
+## Overview
 
-Our platform monitors your activity and, when combined with real-world verification triggers, can automatically transfer your assets to designated beneficiaries when you're no longer able to manage them yourself.
+Noah ensures your digital assets reach your intended beneficiaries in case of loss of life, hardware damage, or loss of wallet access. By creating an "Ark" for your tokens, you establish a trustless inheritance system with no centralized custody or trusted third parties.
 
-Deployed on Flow however it appears there are errors with the current testnet block explorer as the account is running into read errors -- https://testnet.flowscan.io/evm/account/0xD42D01CfE3EEb70B4d27a9De27cbEacB4b3CAb56
+### How It Works
 
-> "It's not you, it's us 😔 Error while fetching data on route:Evm/account/0xD42D01CfE3EEb70B4d27a9De27cbEacB4b3CAb56 Cannot read properties of null (reading 'hash')"
+1. **Build an Ark** - Configure your beneficiary address, deadline duration, and tokens to protect
+2. **Ping periodically** - Signal you're still in control by pinging your Ark before the deadline
+3. **Automatic transfer** - If the deadline passes without a ping, anyone can trigger a "flood" that transfers your assets to your beneficiary
 
-## Setup Instructions
+The flood mechanism is incentivized through MEV opportunities, ensuring reliable execution without relying on centralized keepers.
+
+## Project Structure
+
+```
+├── contracts/          # Solidity smart contracts
+│   ├── noah.sol        # Main Noah contract
+│   └── interfaces/     # Contract interfaces
+├── frontend/           # React frontend application
+├── scripts/            # Deployment scripts
+├── test/               # Contract tests
+└── lib/                # Foundry dependencies
+```
+
+## Tech Stack
+
+**Smart Contracts**
+- Solidity 0.8.20
+- Foundry (Forge, Cast, Anvil)
+- OpenZeppelin Contracts
+
+**Frontend**
+- React 18
+- Vite
+- Wagmi + Viem
+- RainbowKit
+- TailwindCSS
+
+## Getting Started
 
 ### Prerequisites
-- Node.js (v16 or higher)
+
+- [Foundry](https://book.getfoundry.sh/getting-started/installation)
+- Node.js v18+
 - npm or yarn
 
-### Installation
+### Smart Contracts
+
 ```bash
+# Install Foundry dependencies
+forge install
+
+# Compile contracts
+forge build
+
+# Run tests
+forge test
+
+# Run tests with verbosity
+forge test -vvv
+```
+
+### Frontend
+
+```bash
+cd frontend
+
 # Install dependencies
 npm install
 
-# Or with yarn
-yarn install
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
 ```
 
-### Compilation
+### Local Development
+
+Start a local Anvil node and deploy contracts:
+
 ```bash
-# Compile contracts
-npm run compile
+# Terminal 1: Start Anvil
+anvil
 
-# Or with yarn
-yarn compile
+# Terminal 2: Deploy contracts
+forge script scripts/LocalSetup.s.sol --rpc-url http://localhost:8545 --broadcast
 ```
 
-### Testing
-```bash
-# Run tests
-npm test
+## Contract Interface
 
-# Or with yarn
-yarn test
-```
+### Core Functions
 
-### Deployment
-```bash
-# Deploy to local network
-npm run deploy
-
-# Or with yarn
-yarn deploy
-```
-
-## Contract Functions
+| Function | Description |
+|----------|-------------|
+| `buildArk(beneficiary, deadlineDuration, tokens)` | Create a new Ark with specified beneficiary and tokens |
+| `pingArk()` | Reset the deadline timer to signal continued control |
+| `flood(user)` | Transfer tokens to beneficiary after deadline passes |
+| `destroyArk()` | Deactivate and remove your Ark |
 
 ### Ark Management
-- `buildArk(beneficiary, deadlineDuration, tokens)`: Create a new Ark
-- `pingArk()`: Reset the deadline timer
-- `addPassengers(tokens)`: Add new tokens to the Ark
-- `removePassenger(token)`: Remove a specific token
-- `updateDeadlineDuration(duration)`: Change the deadline duration
 
-### Flood Mechanism
-- `flood(user)`: Trigger the automatic token sale for USDC
+| Function | Description |
+|----------|-------------|
+| `addPassengers(tokens)` | Add new tokens to your Ark |
+| `removePassenger(token)` | Remove a specific token from your Ark |
+| `updateDeadlineDuration(duration)` | Change the deadline duration |
+| `getArk(user)` | Query Ark configuration for any address |
 
-## Testing
+### Events
 
-The test suite covers:
-- Contract deployment and initialization
-- Ark building and management
-- Token operations (add/remove)
-- Deadline management
-- Flood functionality with Uniswap V4 swaps
-- Edge cases and error conditions
+- `ArkBuilt` - Emitted when a new Ark is created
+- `ArkPinged` - Emitted when an Ark's deadline is reset
+- `FloodTriggered` - Emitted when tokens are transferred to beneficiary
+- `PassengersAdded` - Emitted when tokens are added to an Ark
+- `PassengerRemoved` - Emitted when a token is removed
+- `DeadlineUpdated` - Emitted when deadline duration changes
+- `ArkDestroyed` - Emitted when an Ark is destroyed
 
-## Security Features
+## Security
 
 - SafeERC20 for all token transfers
-- Proper access control
-- Deadline validation
-- Callback verification for swaps
-
-## Development Notes
-
-- Uses Solidity 0.8.20
-- Implements Uniswap V4 SwapCallback interface
-- Includes comprehensive test coverage
-- Uses Hardhat for development and testing
+- No admin keys or privileged roles
+- Permissionless flood execution
+- Comprehensive test coverage with fuzz testing
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT License - see [LICENSE](LICENSE) for details.
