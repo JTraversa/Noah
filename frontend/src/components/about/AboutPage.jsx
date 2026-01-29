@@ -102,7 +102,7 @@ function AboutPage() {
         <h3 className="text-base md:text-lg font-semibold text-slate-700 mb-4">Links</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <a
-            href="#"
+            href="https://github.com/JTraversa/Noah"
             target="_blank"
             rel="noopener noreferrer"
             className="flex flex-col items-center gap-2 p-4 bg-slate-50/50 hover:bg-gradient-to-br hover:from-indigo-50 hover:to-purple-50 rounded-xl border border-slate-100 hover:border-indigo-200 transition-all group"
