@@ -122,10 +122,10 @@ function App() {
     <div className={`min-h-screen w-screen gradient-bg flex flex-col p-4 md:p-8 text-slate-700 ${isHome ? 'min-[1700px]:overflow-hidden min-[1700px]:h-screen' : 'overflow-y-auto'}`}>
       {/* Floating orbs for depth */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="orb-1 absolute top-20 left-20 w-72 h-72 bg-indigo-400/60 rounded-full blur-3xl" />
-        <div className="orb-2 absolute bottom-20 right-32 w-96 h-96 bg-violet-400/50 rounded-full blur-3xl" />
-        <div className="orb-3 absolute top-1/2 left-1/2 w-80 h-80 bg-indigo-300/60 rounded-full blur-3xl" />
-        <div className="orb-4 absolute top-1/3 right-1/4 w-64 h-64 bg-purple-400/40 rounded-full blur-3xl" />
+        <div className="orb-1 absolute top-20 left-20 w-40 h-40 md:w-72 md:h-72 bg-indigo-400/60 rounded-full blur-3xl" />
+        <div className="orb-2 absolute bottom-20 right-32 w-52 h-52 md:w-96 md:h-96 bg-violet-400/50 rounded-full blur-3xl" />
+        <div className="orb-3 absolute top-1/2 left-1/2 w-44 h-44 md:w-80 md:h-80 bg-indigo-300/60 rounded-full blur-3xl" />
+        <div className="orb-4 absolute top-1/3 right-1/4 w-36 h-36 md:w-64 md:h-64 bg-purple-400/40 rounded-full blur-3xl" />
       </div>
 
       <Header />

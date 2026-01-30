@@ -79,22 +79,22 @@ body {
 
 @keyframes float1 {
   0%, 100% { transform: translate(0, 0); }
-  25% { transform: translate(300px, -240px); }
-  50% { transform: translate(-180px, 300px); }
-  75% { transform: translate(240px, 180px); }
+  25% { transform: translate(15vw, -12vh); }
+  50% { transform: translate(-9vw, 15vh); }
+  75% { transform: translate(12vw, 9vh); }
 }
 
 @keyframes float2 {
   0%, 100% { transform: translate(0, 0); }
-  25% { transform: translate(-360px, 240px); }
-  50% { transform: translate(300px, -300px); }
-  75% { transform: translate(-240px, -180px); }
+  25% { transform: translate(-18vw, 12vh); }
+  50% { transform: translate(15vw, -15vh); }
+  75% { transform: translate(-12vw, -9vh); }
 }
 
 @keyframes float3 {
   0%, 100% { transform: translate(0, 0); }
-  33% { transform: translate(270px, 270px); }
-  66% { transform: translate(-300px, 120px); }
+  33% { transform: translate(14vw, 14vh); }
+  66% { transform: translate(-15vw, 6vh); }
 }
 
 .orb-4 {
@@ -103,10 +103,10 @@ body {
 
 @keyframes float4 {
   0%, 100% { transform: translate(0, 0); }
-  20% { transform: translate(-200px, 150px); }
-  40% { transform: translate(150px, -200px); }
-  60% { transform: translate(-100px, -150px); }
-  80% { transform: translate(200px, 100px); }
+  20% { transform: translate(-10vw, 8vh); }
+  40% { transform: translate(8vw, -10vh); }
+  60% { transform: translate(-5vw, -8vh); }
+  80% { transform: translate(10vw, 5vh); }
 }
 
 /* Odometer roll-up animation */
